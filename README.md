@@ -48,5 +48,5 @@ The project is built using a modern full-stack approach leveraging Next.js with 
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/Rudra775/pixelate.git
+git clone https://github.com/Rudra775/pixelate-saas.git
 cd cloudinary-saas
