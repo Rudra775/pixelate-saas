@@ -1,6 +1,6 @@
-# Cloudinary SAAS: Social Asset Generator
+# Pixelate SAAS: Social Asset Generator
 
-Cloudinary SAAS is a web application designed to optimize and automate the content creation workflow by transforming a single uploaded video into a suite of platform-specific image assets (e.g., thumbnails, previews) ready for social media. It leverages Cloudinary’s video and AI capabilities to streamline asset generation, improving efficiency for social media content creators.
+Pixelate SAAS is a web application designed to optimize and automate the content creation workflow by transforming a single uploaded video into a suite of platform-specific image assets (e.g., thumbnails, previews) ready for social media. It leverages Cloudinary’s video and AI capabilities to streamline asset generation, improving efficiency for social media content creators.
 
 ## Conceptual Features
 
@@ -48,5 +48,5 @@ The project is built using a modern full-stack approach leveraging Next.js with 
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/Rudra775/cloudinary-saas.git
+git clone https://github.com/Rudra775/pixelate.git
 cd cloudinary-saas
