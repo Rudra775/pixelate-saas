@@ -20,8 +20,7 @@ interface CloudinaryUploadResult {
 }
 
 export async function POST(request: NextRequest) {
-
-
+    
     try {
 
         const authData = await auth();
