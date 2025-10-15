@@ -4,8 +4,8 @@ import { scoreImage } from '@/lib/frameScoring';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegPath from 'ffmpeg-static';
 import fs from 'fs';
-import fsp from 'fs/promises';
 import path from 'path';
+import cloudinary from '@/lib/cloudinary';
 
 ffmpeg.setFfmpegPath(ffmpegPath as string);
 
@@ -13,7 +13,6 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
-    // evenly spaced screenshots across the video
     ffmpeg(videoPath)
       .on('end', () => {
         const files = fs.readdirSync(outDir)
@@ -50,19 +49,34 @@ new Worker(
       }
     }
 
-    // expose result via /public so UI can view it
-    const outDir = path.join(process.cwd(), 'public', 'outputs');
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-    const outFile = path.join(outDir, `${job.id}.jpg`);
-    await fsp.copyFile(best, outFile);
+    console.log('🏆 Best frame picked:', best);
 
-    // optional: cleanup tmp later
+    // ⬇ Upload to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload(
+        best,
+        {
+          folder: 'pixelate/best-frames',
+          use_filename: true,
+          unique_filename: false,
+          overwrite: true,
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+    });
 
-    const publicUrl = `/outputs/${job.id}.jpg`;
-    console.log('🏆 best frame ->', publicUrl);
-    return { url: publicUrl };
+    console.log('☁️ Uploaded to Cloudinary:', (uploadResult as any).secure_url);
+
+    // return cloudinary URL as job result
+    return {
+      url: (uploadResult as any).secure_url,
+      public_id: (uploadResult as any).public_id,
+    };
   },
   { connection: redisConfig, concurrency: 2 }
 );
 
-console.log('👷 worker started');
+console.log('👷 worker started with Cloudinary upload');
