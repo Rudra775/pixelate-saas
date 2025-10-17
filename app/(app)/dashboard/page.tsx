@@ -1,10 +1,13 @@
-import { auth } from '@clerk/nextjs/server';
+import {auth} from "@clerk/nextjs/server"
 import { prisma } from '@/lib/prisma';
 import Image from 'next/image';
-import DeleteButton from './DeleteButton';
+import DeleteButton from '@/components/DeleteButton';
 
 export default async function DashboardPage() {
-  const { userId } = auth();
+
+  const authData = await auth();  
+  const userId = authData?.userId;
+  
   if (!userId) {
     return <div className="p-8 text-center">Please sign in to view your dashboard.</div>;
   }
