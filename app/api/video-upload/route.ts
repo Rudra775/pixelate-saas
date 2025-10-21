@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
                 publicId: result.public_id,
                 originalSize: originalSize,
                 compressedSize: String(result.bytes),
-                duration: result.duration || 0,
+                duration: String(result.duration),
             }
         })
         return NextResponse.json(video)
