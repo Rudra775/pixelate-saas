@@ -22,7 +22,17 @@ export async function POST(req: Request) {
         const filePath = path.join(tmpDir, `${Date.now()} - ${file.name}`);
         fs.writeFileSync(filePath, buffer);
 
-        const job = await videoQueue.add('process-video', {filePath});
+        const job = await videoQueue.add(
+            'process-video',
+            {filePath},
+            {
+                attempts: 3,
+                backoff: {type: "exponential", delay: 3000},
+                removeOnComplete: true,
+                removeOnFail: false,
+                // timeout: 60_000
+            }
+        );
         return NextResponse.json({jobId: job.id});
 
     } catch(e) {

@@ -12,6 +12,8 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
 
   const state = await job.getState();
   const result = job.returnvalue ?? null;
+  const attemptsMade = job.attemptsMade ?? 0;
+  const failedReason = job.failedReason ?? null;
 
-  return NextResponse.json({ state, result });
+  return NextResponse.json({ state, result, attemptsMade, failedReason });
 }
