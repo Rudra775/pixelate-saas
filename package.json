@@ -6,14 +6,20 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "worker": "tsx worker/frameProcessor.ts"
   },
   "dependencies": {
+    "@bull-board/api": "^6.14.0",
+    "@bull-board/express": "^6.14.0",
     "@clerk/nextjs": "^6.30.0",
     "@prisma/client": "^6.16.3",
     "bullmq": "^5.61.0",
     "cloudinary": "^2.7.0",
     "dayjs": "^1.11.13",
+    "express": "^5.1.0",
+    "ffmpeg": "^0.0.4",
+    "ffmpeg-static": "^5.2.0",
     "filesize": "^11.0.2",
     "fluent-ffmpeg": "^2.1.3",
     "ioredis": "^5.8.1",
@@ -24,11 +30,13 @@
     "prisma": "^6.14.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "winston": "^3.18.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/fluent-ffmpeg": "^2.1.27",
     "@types/jimp": "^0.2.1",
     "@types/node": "^20.19.10",
     "@types/react": "^19",

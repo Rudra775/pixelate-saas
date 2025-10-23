@@ -6,6 +6,7 @@ import ffmpegPath from 'ffmpeg-static';
 import fs from 'fs';
 import path from 'path';
 import cloudinary from '@/lib/cloudinary';
+import { logger } from '@/lib/logger';
 
 ffmpeg.setFfmpegPath(ffmpegPath as string);
 
@@ -31,13 +32,14 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
 }
 
 // -------------- Worker Setup ---------------- //
+
 const worker = new Worker(
   'video-processing',
 
   // Job processor function
   async (job) => {
     const { filePath } = job.data as { filePath: string };
-    console.log(`[${job.id}] processing ${filePath}`);
+    logger.info(`🎬 [${job.id}] Processing ${filePath}`);
 
     try {
       const framesDir = path.join(path.dirname(filePath), path.basename(filePath) + '-frames');
@@ -57,6 +59,8 @@ const worker = new Worker(
       console.log(`[${job.id}] Best frame picked: ${path.basename(best)}`);
 
       // Upload to Cloudinary
+      if (Math.random() < 0.9) throw new Error("Simulated Cloudinary upload failure");
+
       const uploadResult = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload(
           best,
@@ -108,7 +112,7 @@ worker.on('completed', (job) => {
 });
 
 worker.on('failed', (job, err) => {
-  console.error(`Job ${job?.id} failed after ${job?.attemptsMade} attempt(s): ${err.message}`);
+ logger.error(`❌ [${job?.id}] Failed: ${err.message}`);
 });
 
 // -------------- Graceful Shutdown ---------------- //

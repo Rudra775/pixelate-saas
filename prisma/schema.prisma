@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../node_modules/.prisma/client"
@@ -15,23 +9,13 @@ datasource db {
 }
 
 model Video {
-  id String @id @default(cuid())
-  title String
-  description String?
-  publicId String
-  originalSize String
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  publicId       String
+  originalSize   String
   compressedSize String
-  duration String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model ProcessedFrame {
-  id         String   @id @default(cuid())
-  userId     String
-  videoName  String
-  publicId   String
-  imageUrl   String
-  status     String   @default("completed")
-  createdAt  DateTime @default(now())
+  duration       String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
