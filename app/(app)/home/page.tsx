@@ -3,6 +3,8 @@ import React, {useState, useEffect, useCallback} from 'react'
 import axios from 'axios'
 import VideoCard from '@/components/VideoCard'
 import { Video } from '@/types'
+export const dynamic = 'force-static';
+
 function Home() {
     const [videos, setVideos] = useState<Video[]>([])
     const [loading, setLoading] = useState(true)
