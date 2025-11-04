@@ -7,7 +7,8 @@ export async function DELETE(
   _: Request,
   { params }: { params: { id: string } }
 ) {
-  const { userId } = auth();
+    const authData = await auth();
+    const userId = authData?.userId;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const frame = await prisma.processedFrame.findUnique({
