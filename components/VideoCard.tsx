@@ -102,7 +102,7 @@ const  VideoCard: React.FC<VideoCardProps> = ({video, onDownload}) => {
             )}
             <div className="absolute bottom-2 right-2 bg-base-100 bg-opacity-70 px-2 py-1 rounded-lg text-sm flex items-center">
               <Clock size={16} className="mr-1" />
-              {formatDuration(video.duration)}
+              {formatDuration(Number(video.duration))}
             </div>
           </figure>
           <div className="card-body p-4">

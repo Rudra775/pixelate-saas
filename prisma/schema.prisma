@@ -36,4 +36,3 @@ model ProcessedFrame {
   @@index([userId, createdAt])
   @@index([status])
 }
-
