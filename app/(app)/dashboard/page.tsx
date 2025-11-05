@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/prisma';
+import { Prisma } from "@prisma/client";
 import Image from 'next/image';
 import Link from 'next/link';
 import DeleteButton from '@/components/DeleteButton';
@@ -23,25 +24,27 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
   const limit = 6; // 6 items per page
   const searchQuery = searchParams.q?.trim() || '';
 
-  const whereClause = {
-    userId,
-    ...(searchQuery && {
-      videoName: {
-        contains: searchQuery,
-        mode: 'insensitive',
-      },
-    }),
-  };
-
-  const [total, frames] = await Promise.all([
-    prisma.processedFrame.count({ where: whereClause }),
-    prisma.processedFrame.findMany({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      skip: (page - 1) * limit,
-      take: limit,
-    }),
-  ]);
+  const whereClause: Prisma.ProcessedFrameWhereInput = {
+      userId,
+      ...(searchQuery
+        ? {
+            videoName: {
+              contains: searchQuery,
+              mode: "insensitive",
+            },
+          }
+        : {}),
+    };
+    
+    const [total, frames] = await Promise.all([
+      prisma.processedFrame.count({ where: whereClause }),
+      prisma.processedFrame.findMany({
+        where: whereClause,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
 
   const totalPages = Math.ceil(total / limit);
 
