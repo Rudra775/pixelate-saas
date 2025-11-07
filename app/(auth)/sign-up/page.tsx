@@ -1,12 +1,12 @@
-// app/(auth)/sign-in/page.tsx
+// app/(auth)/sign-up/page.tsx
 "use client";
 
 import { useState } from "react";
-import { useSignIn } from "@clerk/nextjs";
+import { useSignUp } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
-export default function SignIn() {
-  const { signIn, setActive, isLoaded } = useSignIn();
+export default function SignUp() {
+  const { isLoaded, signUp, setActive } = useSignUp();
   const router = useRouter();
 
   const [email, setEmail] = useState("");
@@ -15,24 +15,23 @@ export default function SignIn() {
 
   if (!isLoaded) return null;
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
-      const result = await signIn.create({
-        identifier: email,
+      // Step 1: Create the user
+      await signUp.create({
+        emailAddress: email,
         password,
       });
 
-      if (result.status === "complete") {
-        await setActive({ session: result.createdSessionId });
-        router.push("/dashboard");
-      } else {
-        setError("Unexpected state. Please try again.");
-      }
+      // Step 2: Prepare verification (email code)
+      await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
+
+      router.push("/verify-email"); // Optional: verification page
     } catch (err: any) {
-      setError(err.errors?.[0]?.message || "Sign-in failed. Try again.");
+      setError(err.errors?.[0]?.message || "Sign-up failed. Try again.");
     }
   };
 
@@ -40,9 +39,9 @@ export default function SignIn() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
       <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl w-full max-w-md">
         <h1 className="text-3xl font-semibold text-center text-gray-800 dark:text-white mb-6">
-          Welcome back 👋
+          Create your account 🚀
         </h1>
-        <form onSubmit={handleSignIn} className="space-y-4">
+        <form onSubmit={handleSignUp} className="space-y-4">
           <div>
             <label className="text-sm text-gray-600 dark:text-gray-300">Email</label>
             <input
@@ -73,14 +72,14 @@ export default function SignIn() {
             type="submit"
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition"
           >
-            Sign In
+            Sign Up
           </button>
         </form>
 
         <p className="text-sm text-gray-500 dark:text-gray-400 text-center mt-6">
-          Don’t have an account?{" "}
-          <a href="/sign-up" className="text-blue-600 hover:text-blue-700 font-medium">
-            Sign up
+          Already have an account?{" "}
+          <a href="/sign-in" className="text-blue-600 hover:text-blue-700 font-medium">
+            Sign in
           </a>
         </p>
       </div>
