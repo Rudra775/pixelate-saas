@@ -9,6 +9,7 @@ import path from "path";
 import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
 
+
 // 🧠 Jimp fix — use named import for ESM
 import { read as readImage } from "jimp";
 

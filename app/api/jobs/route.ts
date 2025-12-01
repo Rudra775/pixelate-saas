@@ -5,11 +5,16 @@ import {Queue, tryCatch} from 'bullmq';
 import { redisConfig } from "@/lib/redis";
 import fs from 'fs';
 import path from 'path';
+import { auth } from "@clerk/nextjs/server";
 
 const videoQueue = new Queue('video-processing', {connection: redisConfig});
 
 export async function POST(req: Request) {
   try {
+    const authData = await auth();
+    const userId = authData?.userId
+    if(!userId) return NextResponse.json({error: "Unauthorized"}, {status: 401});
+
     const form = await req.formData();
     const file = form.get('file') as File | null;
     if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
@@ -30,7 +35,7 @@ export async function POST(req: Request) {
 
     // enqueue BullMQ job
     try {
-      const job = await videoQueue.add('process-video', { filePath }, {
+      const job = await videoQueue.add('process-video', { filePath, userId }, {
         attempts: 3,
         backoff: { type: 'exponential', delay: 3000 },
         removeOnComplete: true,
