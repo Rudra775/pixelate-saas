@@ -8,7 +8,7 @@ import fs from "fs";
 import path from "path";
 import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
-
+import { prisma } from "@/lib/prisma";
 
 // 🧠 Jimp fix — use named import for ESM
 import { read as readImage } from "jimp";
@@ -43,8 +43,8 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
 const worker = new Worker(
   "video-processing",
   async (job) => {
-    const { filePath } = job.data as { filePath: string };
-    logger.info(`🎬 [${job.id}] Processing ${filePath}`);
+    const { filePath, userId } = job.data as { filePath: string; userId: string };
+    logger.info(`🎬 [${job.id}] Processing ${filePath} for the user ${userId}`);
 
     try {
       const framesDir = path.join(path.dirname(filePath), path.basename(filePath) + "-frames");
@@ -83,7 +83,21 @@ const worker = new Worker(
         );
       });
 
+      const uploadedUrl = (uploadResult as any).secure_url;
+      const uploadedPublicId = (uploadResult as any).public_id;
+
       logger.info(`[${job.id}] ☁️ Uploaded to Cloudinary: ${(uploadResult as any).secure_url}`);
+
+      const dbRecord = await prisma.processedFrame.create({
+        data: {
+          userId: userId,
+          url: uploadedUrl,
+          publicId: uploadedPublicId,
+          score: bestScore
+        }
+      })
+
+      logger.info(`[${job.id}] 💾 Saved to DB with ID: ${dbRecord.id}`);
 
       // 🧹 Clean up local temp files safely
       try {
@@ -97,6 +111,7 @@ const worker = new Worker(
         url: (uploadResult as any).secure_url,
         public_id: (uploadResult as any).public_id,
         bestScore,
+        dbRecordId: dbRecord.id,
       };
     } catch (err: any) {
       logger.error(`[${job.id}] ❌ Failed: ${err.message}`);
