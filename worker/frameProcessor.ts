@@ -11,7 +11,8 @@ import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
 
 // 🧠 Jimp fix — use named import for ESM
-import { read as readImage } from "jimp";
+import { Jimp } from "jimp";
+const readImage = Jimp.read
 
 // ✅ Configure FFmpeg + FFprobe paths
 ffmpeg.setFfmpegPath(ffmpegPath as string);
