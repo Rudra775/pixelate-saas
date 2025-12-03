@@ -6,8 +6,16 @@ import { redisConfig } from '@/lib/redis';
 
 const videoQueue = new Queue('video-processing', { connection: redisConfig });
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
-  const job = await Job.fromId(videoQueue, params.id);
+// Update the type definition to wrap params in Promise
+export async function GET(
+  _: Request, 
+  { params }: { params: Promise<{ id: string }> }
+) {
+  // Await the params object before using it
+  const { id } = await params;
+
+  const job = await Job.fromId(videoQueue, id);
+  
   if (!job) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const state = await job.getState();

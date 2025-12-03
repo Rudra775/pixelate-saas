@@ -9,29 +9,32 @@ import path from "path";
 import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-
-// 🧠 Jimp fix — use named import for ESM
-import { Jimp } from "jimp";
-const readImage = Jimp.read
+import { UploadApiResponse } from "cloudinary"; // Type for better safety
 
 // ✅ Configure FFmpeg + FFprobe paths
-ffmpeg.setFfmpegPath(ffmpegPath as string);
-ffmpeg.setFfprobePath(ffprobePath.path as string);
+if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
+if (ffprobePath.path) ffmpeg.setFfprobePath(ffprobePath.path);
 
 // ---------------- Extract frames from video ---------------- //
 function extractFrames(videoPath: string, outDir: string, count = 5): Promise<string[]> {
   return new Promise((resolve, reject) => {
+    // Use Sync here is fine as it's just folder creation
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
     ffmpeg(videoPath)
       .on("end", () => {
-        const files = fs
-          .readdirSync(outDir)
-          .filter((f) => f.endsWith(".jpg"))
-          .map((f) => path.join(outDir, f));
-        resolve(files);
+        try {
+          // Read directory cleanly
+          const files = fs
+            .readdirSync(outDir)
+            .filter((f) => f.endsWith(".jpg"))
+            .map((f) => path.join(outDir, f));
+          resolve(files);
+        } catch (e) {
+          reject(e);
+        }
       })
-      .on("error", reject)
+      .on("error", (err) => reject(err))
       .screenshots({
         count,
         folder: outDir,
@@ -44,33 +47,54 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
 const worker = new Worker(
   "video-processing",
   async (job) => {
-    const { filePath, userId } = job.data as { filePath: string; userId: string };
-    logger.info(`🎬 [${job.id}] Processing ${filePath} for the user ${userId}`);
+    const { filePath, userId, originalName } = job.data as { 
+      filePath: string; 
+      userId: string; 
+      originalName: string; // <--- Added this
+    };
+    const jobLogger = logger.child({ jobId: job.id }); // Child logger for cleaner context
+    
+    jobLogger.info(`🎬 Processing ${filePath} for user ${userId}`);
+
+    const framesDir = path.join(path.dirname(filePath), `${path.basename(filePath, path.extname(filePath))}-frames`);
 
     try {
-      const framesDir = path.join(path.dirname(filePath), path.basename(filePath) + "-frames");
+      // 1. Extract Frames
       const frames = await extractFrames(filePath, framesDir, 5);
 
-      let best = frames[0];
-      let bestScore = -Infinity;
-
-      for (const f of frames) {
-        // 🧠 Fix: Jimp.read → readImage from import
-        const score = await scoreImage(f);
-        if (score > bestScore) {
-          bestScore = score;
-          best = f;
-        }
+      if (frames.length === 0) {
+        throw new Error("FFmpeg failed to extract any frames.");
       }
 
-      logger.info(`[${job.id}] 🏆 Best frame picked: ${path.basename(best)} (score=${bestScore})`);
+      // 2. Score Frames in Parallel (Performance Boost 🚀)
+      // We map every frame to a promise and run them all at once
+      const scoredFrames = await Promise.all(
+        frames.map(async (framePath) => {
+          try {
+            const score = await scoreImage(framePath);
+            return { framePath, score };
+          } catch (e) {
+            jobLogger.warn(`Failed to score frame ${framePath}: ${e}`);
+            return { framePath, score: -Infinity }; // Penalize failed frames
+          }
+        })
+      );
 
-      // 🧪 Remove this artificial random failure line for real testing:
-      // if (Math.random() < 0.9) throw new Error("Simulated Cloudinary upload failure");
+      // 3. Find Best Frame
+      // Sort descending by score and pick top 1
+      scoredFrames.sort((a, b) => b.score - a.score);
+      const best = scoredFrames[0];
 
-      const uploadResult = await new Promise((resolve, reject) => {
+      if (!best || best.score === -Infinity) {
+        throw new Error("Could not determine a valid best frame.");
+      }
+
+      jobLogger.info(`🏆 Best frame: ${path.basename(best.framePath)} (Score: ${best.score})`);
+
+      // 4. Upload to Cloudinary
+      const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
         cloudinary.uploader.upload(
-          best,
+          best.framePath,
           {
             folder: "pixelate/best-frames",
             use_filename: true,
@@ -78,72 +102,65 @@ const worker = new Worker(
             overwrite: true,
           },
           (error, result) => {
-            if (error) reject(error);
+            if (error || !result) reject(error || new Error("Upload failed"));
             else resolve(result);
           }
         );
       });
 
-      const uploadedUrl = (uploadResult as any).secure_url;
-      const uploadedPublicId = (uploadResult as any).public_id;
+      jobLogger.info(`☁️ Uploaded: ${uploadResult.secure_url}`);
 
-      logger.info(`[${job.id}] ☁️ Uploaded to Cloudinary: ${(uploadResult as any).secure_url}`);
-
+      // 5. Save to DB
       const dbRecord = await prisma.processedFrame.create({
         data: {
           userId: userId,
-          url: uploadedUrl,
-          publicId: uploadedPublicId,
-          score: bestScore
+          videoName: originalName || "processed-video",
+          
+          imageUrl: uploadResult.secure_url, 
+          publicId: uploadResult.public_id,
+          score: best.score,
         }
-      })
+      });
 
-      logger.info(`[${job.id}] 💾 Saved to DB with ID: ${dbRecord.id}`);
-
-      // 🧹 Clean up local temp files safely
-      try {
-        fs.rmSync(framesDir, { recursive: true, force: true });
-        fs.rmSync(filePath, { force: true });
-      } catch (err) {
-        logger.warn(`[${job.id}] cleanup failed: ${err}`);
-      }
+      jobLogger.info(`💾 DB Record Created: ${dbRecord.id}`);
 
       return {
-        url: (uploadResult as any).secure_url,
-        public_id: (uploadResult as any).public_id,
-        bestScore,
+        url: uploadResult.secure_url,
+        public_id: uploadResult.public_id,
+        bestScore: best.score,
         dbRecordId: dbRecord.id,
       };
+
     } catch (err: any) {
-      logger.error(`[${job.id}] ❌ Failed: ${err.message}`);
-      throw err; // BullMQ will handle retry
+      jobLogger.error(`❌ Failed: ${err.message}`);
+      throw err; // Trigger BullMQ retry
+    } finally {
+      // 6. Async Cleanup (Always runs, success or fail)
+      // Using Promise.all to delete both path and file concurrently
+      try {
+        await Promise.all([
+           fs.promises.rm(framesDir, { recursive: true, force: true }).catch(() => {}),
+           fs.promises.unlink(filePath).catch(() => {})
+        ]);
+        jobLogger.info("🧹 Cleanup complete");
+      } catch (e) {
+        jobLogger.warn(`Cleanup minor error: ${e}`);
+      }
     }
   },
   {
     connection: redisConfig,
-    concurrency: 2,
+    concurrency: 2, // Process 2 videos at once
   }
 );
 
 // ---------------- Event Hooks ---------------- //
 worker.on("completed", (job) => {
-  logger.info(`✅ Job ${job.id} completed successfully`);
+  logger.info(`✅ [${job.id}] Job Completed`);
 });
 
 worker.on("failed", (job, err) => {
-  logger.error(`❌ [${job?.id}] Failed: ${err.message}`);
+  logger.error(`❌ [${job?.id}] Job Failed: ${err.message}`);
 });
 
-// ---------------- Graceful Shutdown ---------------- //
-process.on("SIGTERM", async () => {
-  logger.info("🧹 Graceful shutdown initiated...");
-  await worker.close();
-  process.exit(0);
-});
-
-process.on("unhandledRejection", (reason) => {
-  logger.error("⚠️ Unhandled Rejection:", reason);
-});
-
-console.log("Worker started (with retries + fault tolerance)");
-
+console.log("🚀 Worker started and listening for jobs...");

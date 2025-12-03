@@ -1,54 +1,64 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from "next/server";
-import {Queue, tryCatch} from 'bullmq';
+import { Queue } from 'bullmq';
 import { redisConfig } from "@/lib/redis";
+import { auth } from "@clerk/nextjs/server";
 import fs from 'fs';
 import path from 'path';
-import { auth } from "@clerk/nextjs/server";
+import os from 'os';
 
-const videoQueue = new Queue('video-processing', {connection: redisConfig});
+// 1. Singleton Pattern for BullMQ in Next.js Dev
+// This prevents creating 100s of connections every time you save a file.
+const globalQueue = global as unknown as { videoQueue: Queue };
+
+let videoQueue: Queue;
+if (!globalQueue.videoQueue) {
+  globalQueue.videoQueue = new Queue('video-processing', { connection: redisConfig });
+}
+videoQueue = globalQueue.videoQueue;
 
 export async function POST(req: Request) {
   try {
     const authData = await auth();
-    const userId = authData?.userId
-    if(!userId) return NextResponse.json({error: "Unauthorized"}, {status: 401});
+    const userId = authData?.userId;
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const form = await req.formData();
     const file = form.get('file') as File | null;
-    if (!file) return NextResponse.json({ error: 'No file' }, { status: 400 });
-
-    let buffer: Buffer;
-    try {
-      buffer = Buffer.from(await file.arrayBuffer());
-    } catch (err) {
-      console.error("Failed to read file:", err);
-      return NextResponse.json({ error: 'File read error' }, { status: 400 });
+    
+    if (!file) {
+      return NextResponse.json({ error: 'No file found' }, { status: 400 });
     }
 
-    const tmpDir = path.join(process.cwd(), 'tmp');
-    if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+    // 2. Convert file to Buffer
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    const filePath = path.join(tmpDir, `${Date.now()}-${file.name}`);
-    fs.writeFileSync(filePath, buffer);
+    // 3. Save to a local temp directory safely
+    // Using os.tmpdir() is safer than process.cwd() for cross-platform compatibility
+    const tempDir = os.tmpdir();
+    const uniqueName = `${Date.now()}-${file.name.replace(/\s+/g, '_')}`;
+    const filePath = path.join(tempDir, uniqueName);
 
-    // enqueue BullMQ job
-    try {
-      const job = await videoQueue.add('process-video', { filePath, userId }, {
-        attempts: 3,
-        backoff: { type: 'exponential', delay: 3000 },
-        removeOnComplete: true,
-        removeOnFail: false,
-      });
-      return NextResponse.json({ jobId: job.id });
-    } catch (err) {
-      console.error('BullMQ enqueue error:', err);
-      return NextResponse.json({ error: 'Failed to enqueue job' }, { status: 500 });
-    }
+    // Write file locally
+    await fs.promises.writeFile(filePath, buffer);
 
-  } catch (e) {
-    console.error('POST /api/jobs unexpected error:', e);
-    return NextResponse.json({ error: 'Unexpected failure' }, { status: 500 });
+    // 4. Add to BullMQ
+    const job = await videoQueue.add('process-video', { 
+      filePath,  // Worker will read from this path
+      userId,
+      originalName: file.name
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 1000 }
+    });
+
+    return NextResponse.json({ jobId: job.id, success: true });
+
+  } catch (error) {
+    console.error('Upload Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

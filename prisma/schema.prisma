@@ -31,7 +31,6 @@ model ProcessedFrame {
   facePresence Float?
   status       String   @default("completed")
   createdAt    DateTime @default(now())
-  url       String   // The URL from Cloudinary (e.g., uploadedUrl)
   publicId  String   @unique // The Cloudinary ID (for cleanup)
   score     Float    // The image score (bestScore)
 
