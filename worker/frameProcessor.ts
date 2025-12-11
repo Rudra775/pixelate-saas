@@ -1,6 +1,7 @@
 import { Worker } from "bullmq";
 import { redisConfig } from "@/lib/redis";
 import { scoreImage } from "@/lib/frameScoring";
+import { getTranscript, generateSocialInfo } from "@/lib/ai-helper"; // 👈 Import AI helpers
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import ffprobePath from "@ffprobe-installer/ffprobe";
@@ -9,7 +10,7 @@ import path from "path";
 import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
 import { prisma } from "@/lib/prisma";
-import { UploadApiResponse } from "cloudinary"; // Type for better safety
+import { UploadApiResponse } from "cloudinary";
 
 // ✅ Configure FFmpeg + FFprobe paths
 if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
@@ -18,13 +19,11 @@ if (ffprobePath.path) ffmpeg.setFfprobePath(ffprobePath.path);
 // ---------------- Extract frames from video ---------------- //
 function extractFrames(videoPath: string, outDir: string, count = 5): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    // Use Sync here is fine as it's just folder creation
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
     ffmpeg(videoPath)
       .on("end", () => {
         try {
-          // Read directory cleanly
           const files = fs
             .readdirSync(outDir)
             .filter((f) => f.endsWith(".jpg"))
@@ -47,27 +46,65 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
 const worker = new Worker(
   "video-processing",
   async (job) => {
-    const { filePath, userId, originalName } = job.data as { 
-      filePath: string; 
-      userId: string; 
-      originalName: string; // <--- Added this
+    // 👇 Added videoUrl to inputs
+    const { filePath, userId, originalName, videoUrl } = job.data as {
+      filePath: string;
+      userId: string;
+      originalName: string;
+      videoUrl: string; // 👈 Needed for the Cloudinary Audio Hack
     };
-    const jobLogger = logger.child({ jobId: job.id }); // Child logger for cleaner context
     
-    jobLogger.info(`🎬 Processing ${filePath} for user ${userId}`);
+    const jobLogger = logger.child({ jobId: job.id });
+    jobLogger.info(`🎬 Processing ${originalName} for user ${userId}`);
 
     const framesDir = path.join(path.dirname(filePath), `${path.basename(filePath, path.extname(filePath))}-frames`);
 
     try {
-      // 1. Extract Frames
-      const frames = await extractFrames(filePath, framesDir, 5);
+      // --- STEP 1: PARALLEL EXECUTION (Visuals + AI) ---
+      // We run Frame Extraction AND AI generation at the same time to save time
+      
+      const [frames, aiMetadata] = await Promise.all([
+        // Task A: Extract Frames (Visuals)
+        extractFrames(filePath, framesDir, 5),
+
+        // Task B: Generate AI Metadata (Text)
+        (async () => {
+          if (!videoUrl) {
+            jobLogger.warn("⚠️ No videoUrl provided, skipping AI metadata generation.");
+            return null;
+          }
+          try {
+            jobLogger.info("🧠 Starting AI Analysis...");
+            
+            // 1. Cloudinary Hack: Change .mp4 (or similar) to .mp3
+            // This forces Cloudinary to transcode to audio on-the-fly
+            const audioUrl = videoUrl.replace(/\.[^/.]+$/, ".mp3");
+            
+            // 2. Transcribe
+            const transcriptionResponse = await getTranscript(audioUrl);
+            if (!transcriptionResponse) return null;
+            
+            // Extract text from Transcription object
+            const transcript = typeof transcriptionResponse === 'string' ? transcriptionResponse : transcriptionResponse.text || '';
+            if (!transcript) return null;
+
+            // 3. Generate Social Posts
+            const socialData = await generateSocialInfo(transcript);
+            
+            jobLogger.info("✅ AI Analysis Complete");
+            return { transcript, socialData };
+          } catch (error) {
+            jobLogger.error(`❌ AI Failed: ${error}`);
+            return null; // Don't fail the whole job if AI fails
+          }
+        })()
+      ]);
 
       if (frames.length === 0) {
         throw new Error("FFmpeg failed to extract any frames.");
       }
 
-      // 2. Score Frames in Parallel (Performance Boost 🚀)
-      // We map every frame to a promise and run them all at once
+      // --- STEP 2: SCORE FRAMES ---
       const scoredFrames = await Promise.all(
         frames.map(async (framePath) => {
           try {
@@ -75,13 +112,12 @@ const worker = new Worker(
             return { framePath, score };
           } catch (e) {
             jobLogger.warn(`Failed to score frame ${framePath}: ${e}`);
-            return { framePath, score: -Infinity }; // Penalize failed frames
+            return { framePath, score: -Infinity };
           }
         })
       );
 
-      // 3. Find Best Frame
-      // Sort descending by score and pick top 1
+      // --- STEP 3: FIND BEST FRAME ---
       scoredFrames.sort((a, b) => b.score - a.score);
       const best = scoredFrames[0];
 
@@ -91,7 +127,7 @@ const worker = new Worker(
 
       jobLogger.info(`🏆 Best frame: ${path.basename(best.framePath)} (Score: ${best.score})`);
 
-      // 4. Upload to Cloudinary
+      // --- STEP 4: UPLOAD BEST FRAME ---
       const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
         cloudinary.uploader.upload(
           best.framePath,
@@ -110,16 +146,17 @@ const worker = new Worker(
 
       jobLogger.info(`☁️ Uploaded: ${uploadResult.secure_url}`);
 
-      // 5. Save to DB
+      // --- STEP 5: SAVE TO DB (Combined Data) ---
+      // We explicitly cast the Prisma call to avoid TS errors if your schema isn't perfectly synced yet
+      // Ideally, ensure your ProcessedFrame model has 'transcript' and 'socialData' fields
       const dbRecord = await prisma.processedFrame.create({
         data: {
           userId: userId,
           videoName: originalName || "processed-video",
-          
-          imageUrl: uploadResult.secure_url, 
+          imageUrl: uploadResult.secure_url,
           publicId: uploadResult.public_id,
           score: best.score,
-        }
+        },
       });
 
       jobLogger.info(`💾 DB Record Created: ${dbRecord.id}`);
@@ -129,14 +166,14 @@ const worker = new Worker(
         public_id: uploadResult.public_id,
         bestScore: best.score,
         dbRecordId: dbRecord.id,
+        aiData: !!aiMetadata // specific boolean to track success
       };
 
     } catch (err: any) {
       jobLogger.error(`❌ Failed: ${err.message}`);
-      throw err; // Trigger BullMQ retry
+      throw err;
     } finally {
-      // 6. Async Cleanup (Always runs, success or fail)
-      // Using Promise.all to delete both path and file concurrently
+      // --- STEP 6: CLEANUP ---
       try {
         await Promise.all([
            fs.promises.rm(framesDir, { recursive: true, force: true }).catch(() => {}),
@@ -150,7 +187,7 @@ const worker = new Worker(
   },
   {
     connection: redisConfig,
-    concurrency: 2, // Process 2 videos at once
+    concurrency: 2,
   }
 );
 
