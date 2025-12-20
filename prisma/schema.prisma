@@ -1,41 +1,49 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
 }
-
+ 
+// Connection URL is read from environment during CLI operations
+// keep DATABASE_URL in project root .env
+// Example: DATABASE_URL="postgresql://user:pass@host:5432/dbname"
 
 model Video {
   id             String   @id @default(cuid())
-  title          String
-  description    String?
-  publicId       String
-  originalSize   String
-  compressedSize String
-  duration       String
+  userId         String   // From Clerk
+  
+  // File Info
+  publicId       String   // Cloudinary Video ID
+  originalName   String
+  duration       Float
+  originalUrl    String   // The video URL
+  
+  // AI Generated Data
+  transcript     String?  @db.Text
+  socialData     Json?    // { twitter: [], linkedin: "", instagram: "" }
+  
+  status         String   @default("processing") // processing | completed | failed
+
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-  transcript     String?   @db.Text
-  socialData     Json?
+
+  frames         ProcessedFrame[]
 }
 
 model ProcessedFrame {
-  id           String   @id @default(cuid())
-  userId       String
-  videoName    String
-  imageUrl     String
-  brightness   Float?
-  contrast     Float?
-  saturation   Float?
-  facePresence Float?
-  status       String   @default("completed")
-  createdAt    DateTime @default(now())
-  publicId  String   @unique // The Cloudinary ID (for cleanup)
-  score     Float    // The image score (bestScore)
+  id        String   @id @default(cuid())
+  userId    String
+  
+  videoId   String?
+  video     Video?   @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  @@index([userId, createdAt])
-  @@index([status])
+  imageUrl  String   // The Cloudinary URL for the thumbnail
+  publicId  String   @unique
+  score     Float    // How "good" the frame is
+  
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }

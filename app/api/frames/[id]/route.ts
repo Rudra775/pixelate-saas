@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/prisma';
+const prisma = db;
 import cloudinary from '@/lib/cloudinary';
 
 export async function DELETE(
@@ -19,14 +20,14 @@ export async function DELETE(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  // ⬇ delete from Cloudinary first
+  //delete from Cloudinary first
   try {
     await cloudinary.uploader.destroy(frame.publicId);
   } catch (e) {
     console.error('Cloudinary deletion failed:', e);
   }
 
-  // ⬇ delete from DB
+  // delete from DB
   await prisma.processedFrame.delete({ where: { id: frame.id } });
 
   return NextResponse.json({ ok: true });

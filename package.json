@@ -14,10 +14,11 @@
     "@bull-board/express": "^6.14.0",
     "@clerk/nextjs": "^6.30.0",
     "@ffprobe-installer/ffprobe": "^2.1.2",
-    "@prisma/client": "^6.16.3",
+    "axios": "^1.13.2",
     "bullmq": "^5.61.0",
     "cloudinary": "^2.7.0",
     "dayjs": "^1.11.13",
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "ffmpeg": "^0.0.4",
     "ffmpeg-static": "^5.2.0",
@@ -29,7 +30,7 @@
     "lucide-react": "^0.540.0",
     "next": "15.4.5",
     "next-cloudinary": "^6.16.0",
-    "prisma": "^6.14.0",
+    "pg": "^8.16.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "tsx": "^4.20.3",
@@ -37,6 +38,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
     "@tailwindcss/postcss": "^4",
     "@types/fluent-ffmpeg": "^2.1.27",
     "@types/jimp": "^0.2.1",
@@ -46,6 +49,7 @@
     "daisyui": "^5.0.50",
     "eslint": "^9",
     "eslint-config-next": "15.4.5",
+    "prisma": "^7.2.0",
     "tailwindcss": "^4",
     "typescript": "^5.9.2"
   }
