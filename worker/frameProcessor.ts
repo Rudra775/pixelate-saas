@@ -1,22 +1,37 @@
+import "dotenv/config";
 import { Worker } from "bullmq";
 import { redisConfig } from "@/lib/redis";
 import { scoreImage } from "@/lib/frameScoring";
-import { getTranscript, generateSocialInfo } from "@/lib/ai-helper"; // 👈 Import AI helpers
+import { getTranscript, generateSocialInfo } from "@/lib/ai-helper";
 import ffmpeg from "fluent-ffmpeg";
 import ffmpegPath from "ffmpeg-static";
 import ffprobePath from "@ffprobe-installer/ffprobe";
 import fs from "fs";
 import path from "path";
+import os from "os"; //  Needed for temp directory
+import axios from "axios"; //  Needed to download video
 import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
-import { prisma } from "@/lib/prisma";
+import { db } from "@/lib/prisma"; // Use the singleton DB
+const prisma = db;
 import { UploadApiResponse } from "cloudinary";
 
-// ✅ Configure FFmpeg + FFprobe paths
+//  Configure FFmpeg + FFprobe paths
 if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
 if (ffprobePath.path) ffmpeg.setFfprobePath(ffprobePath.path);
 
-// ---------------- Extract frames from video ---------------- //
+// ---------------- Helper: Download Video ---------------- //
+import { pipeline } from "stream/promises";
+
+async function downloadVideo(url: string, destPath: string) {
+  const response = await axios({ url, method: "GET", responseType: "stream" });
+  if (response.status < 200 || response.status >= 300) throw new Error(`Bad status: ${response.status}`);
+  const writer = fs.createWriteStream(destPath);
+  await pipeline(response.data, writer); // throws on error
+  return destPath;
+}
+
+// ---------------- Helper: Extract Frames ---------------- //
 function extractFrames(videoPath: string, outDir: string, count = 5): Promise<string[]> {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
@@ -42,67 +57,60 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
   });
 }
 
-// ---------------- Worker Setup ---------------- //
+// ---------------- Worker Logic ---------------- //
 const worker = new Worker(
   "video-processing",
   async (job) => {
-    // 👇 Added videoUrl to inputs
-    const { filePath, userId, originalName, videoUrl } = job.data as {
-      filePath: string;
+    // 👇 We now expect 'videoId' and 'videoUrl' from the API trigger
+    const { videoId, videoUrl, userId, originalName } = job.data as {
+      videoId: string;
+      videoUrl: string;
       userId: string;
       originalName: string;
-      videoUrl: string; // 👈 Needed for the Cloudinary Audio Hack
     };
-    
-    const jobLogger = logger.child({ jobId: job.id });
-    jobLogger.info(`🎬 Processing ${originalName} for user ${userId}`);
 
-    const framesDir = path.join(path.dirname(filePath), `${path.basename(filePath, path.extname(filePath))}-frames`);
+    const jobLogger = logger.child({ jobId: job.id });
+    jobLogger.info(`🎬 Processing job for Video ID: ${videoId}`);
+
+    // Create a temp file path to download the video to
+    const tempDir = os.tmpdir();
+    const tempVideoPath = path.join(tempDir, `job-${job.id}.mp4`);
+    const framesDir = path.join(tempDir, `frames-${job.id}`);
 
     try {
-      // --- STEP 1: PARALLEL EXECUTION (Visuals + AI) ---
-      // We run Frame Extraction AND AI generation at the same time to save time
-      
-      const [frames, aiMetadata] = await Promise.all([
-        // Task A: Extract Frames (Visuals)
-        extractFrames(filePath, framesDir, 5),
+      // --- STEP 0: DOWNLOAD VIDEO ---
+      jobLogger.info(`📥 Downloading video from ${videoUrl}...`);
+      await downloadVideo(videoUrl, tempVideoPath);
+      jobLogger.info("✅ Download complete.");
 
-        // Task B: Generate AI Metadata (Text)
+      // --- STEP 1: PARALLEL EXECUTION (Visuals + AI) ---
+      const [frames, aiMetadata] = await Promise.all([
+        // Task A: Extract Frames (Visuals) using the local temp file
+        extractFrames(tempVideoPath, framesDir, 5),
+
+        // Task B: Generate AI Metadata (Text) using the Cloudinary URL
         (async () => {
-          if (!videoUrl) {
-            jobLogger.warn("⚠️ No videoUrl provided, skipping AI metadata generation.");
-            return null;
-          }
           try {
             jobLogger.info("🧠 Starting AI Analysis...");
-            
-            // 1. Cloudinary Hack: Change .mp4 (or similar) to .mp3
-            // This forces Cloudinary to transcode to audio on-the-fly
             const audioUrl = videoUrl.replace(/\.[^/.]+$/, ".mp3");
             
-            // 2. Transcribe
             const transcriptionResponse = await getTranscript(audioUrl);
-            if (!transcriptionResponse) return null;
-            
-            // Extract text from Transcription object
-            const transcript = typeof transcriptionResponse === 'string' ? transcriptionResponse : transcriptionResponse.text || '';
+            const transcript = typeof transcriptionResponse === 'string' 
+                ? transcriptionResponse 
+                : transcriptionResponse?.text || '';
+
             if (!transcript) return null;
 
-            // 3. Generate Social Posts
             const socialData = await generateSocialInfo(transcript);
-            
-            jobLogger.info("✅ AI Analysis Complete");
             return { transcript, socialData };
           } catch (error) {
             jobLogger.error(`❌ AI Failed: ${error}`);
-            return null; // Don't fail the whole job if AI fails
+            return null;
           }
         })()
       ]);
 
-      if (frames.length === 0) {
-        throw new Error("FFmpeg failed to extract any frames.");
-      }
+      if (frames.length === 0) throw new Error("No frames extracted");
 
       // --- STEP 2: SCORE FRAMES ---
       const scoredFrames = await Promise.all(
@@ -111,93 +119,70 @@ const worker = new Worker(
             const score = await scoreImage(framePath);
             return { framePath, score };
           } catch (e) {
-            jobLogger.warn(`Failed to score frame ${framePath}: ${e}`);
             return { framePath, score: -Infinity };
           }
         })
       );
 
-      // --- STEP 3: FIND BEST FRAME ---
+      // --- STEP 3: PICK BEST & UPLOAD ---
       scoredFrames.sort((a, b) => b.score - a.score);
       const best = scoredFrames[0];
-
-      if (!best || best.score === -Infinity) {
-        throw new Error("Could not determine a valid best frame.");
-      }
-
-      jobLogger.info(`🏆 Best frame: ${path.basename(best.framePath)} (Score: ${best.score})`);
-
-      // --- STEP 4: UPLOAD BEST FRAME ---
+      
       const uploadResult = await new Promise<UploadApiResponse>((resolve, reject) => {
-        cloudinary.uploader.upload(
-          best.framePath,
-          {
-            folder: "pixelate/best-frames",
-            use_filename: true,
-            unique_filename: false,
-            overwrite: true,
-          },
-          (error, result) => {
-            if (error || !result) reject(error || new Error("Upload failed"));
-            else resolve(result);
-          }
+        cloudinary.uploader.upload(best.framePath, 
+          { folder: "pixelate/thumbnails" }, 
+          (err, res) => (err || !res ? reject(err) : resolve(res))
         );
       });
 
-      jobLogger.info(`☁️ Uploaded: ${uploadResult.secure_url}`);
-
-      // --- STEP 5: SAVE TO DB (Combined Data) ---
-      // We explicitly cast the Prisma call to avoid TS errors if your schema isn't perfectly synced yet
-      // Ideally, ensure your ProcessedFrame model has 'transcript' and 'socialData' fields
-      const dbRecord = await prisma.processedFrame.create({
+      // --- STEP 4: UPDATE DATABASE (Crucial!) ---
+      
+      // A. Update the Parent Video (Status & AI Data)
+      await db.video.update({
+        where: { id: videoId },
         data: {
-          userId: userId,
-          videoName: originalName || "processed-video",
+          status: "completed",
+          transcript: aiMetadata?.transcript || null,
+          socialData: aiMetadata?.socialData || undefined,
+        }
+      });
+
+      // B. Create the Frame Record (Linked to Video)
+      await db.processedFrame.create({
+        data: {
+          userId,
+          videoId, // Link to the parent video
+          videoName: originalName,
           imageUrl: uploadResult.secure_url,
           publicId: uploadResult.public_id,
           score: best.score,
-        },
+        }
       });
 
-      jobLogger.info(`💾 DB Record Created: ${dbRecord.id}`);
-
-      return {
-        url: uploadResult.secure_url,
-        public_id: uploadResult.public_id,
-        bestScore: best.score,
-        dbRecordId: dbRecord.id,
-        aiData: !!aiMetadata // specific boolean to track success
-      };
+      jobLogger.info("✅ Job Completed Successfully!");
+      return { success: true };
 
     } catch (err: any) {
-      jobLogger.error(`❌ Failed: ${err.message}`);
+      // If failed, mark video as failed in DB
+      await db.video.update({
+        where: { id: videoId },
+        data: { status: "failed" }
+      });
+      jobLogger.error(`❌ Job Failed: ${err.message}`);
       throw err;
     } finally {
-      // --- STEP 6: CLEANUP ---
+      // --- CLEANUP ---
       try {
         await Promise.all([
            fs.promises.rm(framesDir, { recursive: true, force: true }).catch(() => {}),
-           fs.promises.unlink(filePath).catch(() => {})
+           fs.promises.unlink(tempVideoPath).catch(() => {})
         ]);
-        jobLogger.info("🧹 Cleanup complete");
-      } catch (e) {
-        jobLogger.warn(`Cleanup minor error: ${e}`);
-      }
+      } catch (e) { /* ignore */ }
     }
   },
-  {
-    connection: redisConfig,
-    concurrency: 2,
-  }
+  { connection: redisConfig, concurrency: 2 }
 );
 
-// ---------------- Event Hooks ---------------- //
-worker.on("completed", (job) => {
-  logger.info(`✅ [${job.id}] Job Completed`);
-});
-
-worker.on("failed", (job, err) => {
-  logger.error(`❌ [${job?.id}] Job Failed: ${err.message}`);
-});
-
-console.log("🚀 Worker started and listening for jobs...");
+// Event hooks
+worker.on("completed", (job) => logger.info(`✅ Job ${job.id} Finished`));
+worker.on("failed", (job, err) => logger.error(`❌ Job ${job?.id} Failed: ${err.message}`));
