@@ -14,7 +14,7 @@ export async function getTranscript(audioUrl: string) {
 
     const completion = await groq.audio.transcriptions.create({
       file: file,
-      model: "distil-whisper-large-v3-en",
+      model: "whisper-large-v3-turbo",
       response_format: "text",
     });
 

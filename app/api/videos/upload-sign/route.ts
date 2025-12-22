@@ -1,6 +1,5 @@
-import { v2 as cloudinary } from "cloudinary";
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { v2 as cloudinary } from 'cloudinary';
+import { NextResponse } from 'next/server';
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -9,20 +8,21 @@ cloudinary.config({
 });
 
 export async function POST() {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  // 1. Generate a timestamp
   const timestamp = Math.round(new Date().getTime() / 1000);
 
-  // 2. Generate the signature
+  // Generate the signature
   const signature = cloudinary.utils.api_sign_request(
     {
       timestamp: timestamp,
-      folder: "pixelate-uploads", // Organize your uploads
+      folder: 'pixelate-uploads', // Make sure this matches what you send from frontend
     },
     process.env.CLOUDINARY_API_SECRET!
   );
 
-  return NextResponse.json({ timestamp, signature });
+  // 👇 RETURN THE API KEY HERE
+  return NextResponse.json({ 
+    timestamp, 
+    signature,
+    apiKey: process.env.CLOUDINARY_API_KEY 
+  });
 }

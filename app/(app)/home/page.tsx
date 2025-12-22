@@ -1,6 +1,6 @@
 // app/home/page.tsx
 import HomeClient from "./HomeClient";
-import { prisma } from "@/lib/prisma";
+import { db as prisma} from "@/lib/prisma";
 
 // Revalidate every 60 seconds (Incremental Static Regeneration)
 export const revalidate = 60;
