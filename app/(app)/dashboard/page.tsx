@@ -1,50 +1,59 @@
 import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/prisma';
+import { db as prisma } from '@/lib/prisma'; // ✅ Fixed import
 import { Prisma } from "@prisma/client";
 import Image from 'next/image';
 import Link from 'next/link';
 import DeleteButton from '@/components/DeleteButton';
 
-export const dynamic = 'force-dynamic'; // ensures SSR each request
+export const dynamic = 'force-dynamic'; 
 
 interface DashboardProps {
-  searchParams: { page?: string; q?: string };
+  // Next.js 15: searchParams is a Promise
+  searchParams: Promise<{ page?: string; q?: string }>;
 }
 
 export default async function DashboardPage({ searchParams }: DashboardProps) {
-
-    const authData = await auth();
-    const userId = authData?.userId;
+  const authData = await auth();
+  const userId = authData?.userId;
 
   if (!userId) {
     return <div className="p-8 text-center">Please sign in to view your dashboard.</div>;
   }
 
-  const page = parseInt(searchParams.page || '1');
-  const limit = 6; // 6 items per page
-  const searchQuery = searchParams.q?.trim() || '';
+  // Await params before using them
+  const params = await searchParams;
+  const page = parseInt(params.page || '1');
+  const limit = 6; 
+  const searchQuery = params.q?.trim() || '';
 
+  // Fix: Search inside the RELATED Video model, not ProcessedFrame
   const whereClause: Prisma.ProcessedFrameWhereInput = {
-      userId,
-      ...(searchQuery
-        ? {
-            videoName: {
+    userId,
+    ...(searchQuery
+      ? {
+          video: {
+            originalName: {
               contains: searchQuery,
               mode: "insensitive",
             },
-          }
-        : {}),
-    };
-    
-    const [total, frames] = await Promise.all([
-      prisma.processedFrame.count({ where: whereClause }),
-      prisma.processedFrame.findMany({
-        where: whereClause,
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-    ]);
+          },
+        }
+      : {}),
+  };
+
+  const [total, frames] = await Promise.all([
+    prisma.processedFrame.count({ where: whereClause }),
+    prisma.processedFrame.findMany({
+      where: whereClause,
+      // Fix: Include the video relation to get the name
+      include: {
+        video: true,
+      },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+  ]);
 
   const totalPages = Math.ceil(total / limit);
 
@@ -52,7 +61,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold">📊 Your Processed Frames</h1>
 
-      {/* 🔍 Search */}
+      {/* Search */}
       <form className="mb-4 flex gap-2">
         <input
           type="text"
@@ -66,7 +75,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         </button>
       </form>
 
-      {/* 🖼 Grid */}
+      {/* Grid */}
       {frames.length === 0 ? (
         <div className="text-center text-gray-600">
           {searchQuery ? 'No matches found.' : 'No processed assets yet.'}
@@ -78,13 +87,17 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
               <div className="relative w-full aspect-square">
                 <Image
                   src={frame.imageUrl}
-                  alt={frame.videoName}
+                  // Fix: Use the included video relation for the name
+                  alt={frame.video?.originalName || "Video Frame"}
                   fill
                   className="object-cover"
                 />
               </div>
               <div className="p-3">
-                <p className="font-medium text-sm truncate">{frame.videoName}</p>
+                {/* Fix: Use optional chaining in case video was deleted */}
+                <p className="font-medium text-sm truncate">
+                  {frame.video?.originalName || "Untitled Video"}
+                </p>
                 <p className="text-xs text-gray-500">
                   {new Date(frame.createdAt).toLocaleString()}
                 </p>
@@ -95,7 +108,7 @@ export default async function DashboardPage({ searchParams }: DashboardProps) {
         </div>
       )}
 
-      {/* 📄 Pagination */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 mt-6">
           {Array.from({ length: totalPages }).map((_, i) => {

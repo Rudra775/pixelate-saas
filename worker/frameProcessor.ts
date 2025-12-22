@@ -152,7 +152,6 @@ const worker = new Worker(
         data: {
           userId,
           videoId, // Link to the parent video
-          videoName: originalName,
           imageUrl: uploadResult.secure_url,
           publicId: uploadResult.public_id,
           score: best.score,
