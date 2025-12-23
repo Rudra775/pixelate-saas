@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import VideoCard from "@/components/VideoCard";
+import VideoCard from "@/components/video-detail/VideoCard";
 import { Video } from "@/types";
 
 export default function HomeClient({ initialVideos }: { initialVideos: Video[] }) {
