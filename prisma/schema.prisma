@@ -6,45 +6,54 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
- 
-// Connection URL is read from environment during CLI operations
-// keep DATABASE_URL in project root .env
-// Example: DATABASE_URL="postgresql://user:pass@host:5432/dbname"
 
 model Video {
-  id             String   @id @default(cuid())
-  userId         String   // From Clerk
+  id           String   @id @default(cuid())
+  userId       String   // Clerk User ID
   
-  // File Info
-  publicId       String   // Cloudinary Video ID
-  originalName   String
-  duration       Float
-  originalUrl    String   // The video URL
+  // --- Input Details ---
+  publicId     String   // Cloudinary Video ID (e.g. "pixelate-uploads/abc...")
+  originalName String   // "Keynote_2024.mp4"
+  originalUrl  String   // The full Cloudinary secure_url
+  duration     Float    // In seconds
   
-  // AI Generated Data
-  transcript     String?  @db.Text
-  socialData     Json?    // { twitter: [], linkedin: "", instagram: "" }
+  // --- AI Intelligence Layer ---
+  transcript   String?  @db.Text // Output from Whisper
   
-  status         String   @default("processing") // processing | completed | failed
+  // Stores the generated Twitter thread, LinkedIn post, etc.
+  // Structure: { twitter: [], linkedin: "", instagram: "", youtube: "" }
+  socialData   Json?    
+  
+  // --- Processing Status ---
+  // "processing" | "completed" | "failed"
+  status       String   @default("processing") 
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  // --- Relations ---
+  frames       ProcessedFrame[] // Thumbnails extracted by AI
 
-  frames         ProcessedFrame[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model ProcessedFrame {
   id        String   @id @default(cuid())
   userId    String
   
-  videoId   String?
-  video     Video?   @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  // Relationship to Parent Video
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
-  imageUrl  String   // The Cloudinary URL for the thumbnail
+  // Cloudinary Image Info
   publicId  String   @unique
-  score     Float    // How "good" the frame is
+  imageUrl  String   
   
+  // AI Scoring (How good is this frame?)
+  score     Float    
+
   createdAt DateTime @default(now())
 
   @@index([userId])
+  @@index([videoId])
 }
