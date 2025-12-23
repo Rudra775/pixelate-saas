@@ -53,7 +53,7 @@ export default function TestPage() {
 
       if (!uploadRes.ok)
         throw new Error(uploadData.error?.message || "Upload Failed");
-      addLog(`✅ Uploaded! ID: ${uploadData.public_id}`);
+      addLog(`Uploaded! ID: ${uploadData.public_id}`);
 
       // 3. Trigger Backend Processing
       addLog("⚡ Triggering Worker...");
