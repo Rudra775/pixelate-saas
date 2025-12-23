@@ -1,5 +1,5 @@
 import { Queue } from "bullmq";
-import { redisConfig } from "./redis"; // Assuming you have redis.ts for connection details
+import { redisConfig } from "./redis";
 
 // Singleton pattern to prevent creating too many connections in Next.js dev mode
 const globalForQueue = global as unknown as { videoQueue: Queue };
