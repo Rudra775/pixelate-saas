@@ -1,70 +1,61 @@
-import React from "react";
-import { Clock, CheckCircle, Loader2 } from "lucide-react";
-import { getCldImageUrl } from "next-cloudinary";
-import { Video } from "@prisma/client";
-import dayjs from "dayjs";
-import relativeTime from "dayjs/plugin/relativeTime";
+// components/video-detail/VideoCard.tsx
+import React from 'react';
+import { Video, ProcessedFrame } from '@prisma/client';
+import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
-dayjs.extend(relativeTime);
+// Define the type to include the relation we fetched
+type VideoWithFrame = Video & {
+  frames?: ProcessedFrame[];
+};
 
 interface VideoCardProps {
-  video: Video;
-  onDownload?: () => void;
+  video: VideoWithFrame;
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({ video }) => {
-  const isProcessing = video.status === "processing";
+export default function VideoCard({ video }: VideoCardProps) {
+  
+  // LOGIC: Get the best possible image URL
+  // 1. Try to use the AI-selected frame (best quality)
+  // 2. Fallback to generating a thumbnail from the video itself
+  const rawThumbnailUrl = video.frames?.[0]?.imageUrl || video.originalUrl;
+
+  // LOGIC: Force Cloudinary to give us a small, compressed thumbnail
+  // This prevents the "13MB bomb"
+  const thumbnailUrl = rawThumbnailUrl
+    ? rawThumbnailUrl
+        .replace('/upload/', '/upload/w_400,h_225,c_fill,q_auto,f_jpg/') // Resize + Force JPG
+        .replace('.mp4', '.jpg') // Safety check if using originalUrl
+    : '/placeholder.png';
 
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-all hover:shadow-2xl">
+    <div className="bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-700 transition-all">
       {/* Thumbnail Area */}
       <div className="aspect-video relative bg-zinc-950">
-        {isProcessing ? (
-          <div className="w-full h-full flex flex-col items-center justify-center text-zinc-500 gap-2">
-            <Loader2 className="animate-spin" size={24} />
-            <span className="text-xs font-medium uppercase tracking-wider">Processing</span>
-          </div>
-        ) : (
-          <img
-            src={getCldImageUrl({
-              src: video.publicId,
-              width: 400,
-              height: 225,
-              crop: "fill",
-              assetType: "video", // Important for generating thumbs from video
-            })}
-            alt={video.originalName}
-            className="w-full h-full object-cover"
-          />
-        )}
+        <img 
+          src={thumbnailUrl} 
+          alt={video.originalName || "Video thumbnail"}
+          className="w-full h-full object-cover"
+          loading="lazy"
+        />
         
         {/* Duration Badge */}
-        <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-xs font-medium flex items-center gap-1">
-          <Clock size={12} />
-          {Math.round(video.duration)}s
+        <div className="absolute bottom-2 right-2 bg-black/80 px-2 py-1 rounded text-xs font-mono">
+          {Math.round(video.duration || 0)}s
         </div>
       </div>
 
-      {/* Content */}
+      {/* Info Area */}
       <div className="p-4">
-        <h3 className="font-semibold truncate mb-1 text-zinc-100" title={video.originalName}>
-          {video.originalName}
+        <h3 className="font-semibold truncate mb-2" title={video.originalName}>
+          {video.originalName || "Untitled Video"}
         </h3>
-        <div className="flex items-center justify-between mt-3">
-          <span className="text-xs text-zinc-500">
-            {dayjs(video.createdAt).fromNow()}
-          </span>
-          
-          <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-            isProcessing ? "bg-yellow-500/10 text-yellow-500" : "bg-green-500/10 text-green-500"
-          }`}>
-            {isProcessing ? <Loader2 size={10} className="animate-spin"/> : <CheckCircle size={10} />}
-            {video.status}
-          </div>
+        
+        <div className="flex items-center gap-2 text-sm text-zinc-400">
+           {video.status === 'completed' && <><CheckCircle size={14} className="text-green-500"/> Completed</>}
+           {video.status === 'processing' && <><div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"/> Processing</>}
+           {video.status === 'failed' && <><AlertCircle size={14} className="text-red-500"/> Failed</>}
         </div>
       </div>
     </div>
   );
-};
-
-export default VideoCard;
+}
