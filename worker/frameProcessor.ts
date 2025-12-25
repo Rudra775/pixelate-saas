@@ -13,7 +13,6 @@ import axios from "axios"; //  Needed to download video
 import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
 import { db } from "@/lib/prisma"; // Use the singleton DB
-const prisma = db;
 import { UploadApiResponse } from "cloudinary";
 
 //  Configure FFmpeg + FFprobe paths

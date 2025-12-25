@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   '/sign-up',
   '/',
   '/home',
+  "/api/upload/webhook",
 ]);
 
 const isPublicApiRoute = createRouteMatcher([
