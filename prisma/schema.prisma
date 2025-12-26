@@ -12,24 +12,23 @@ model Video {
   userId       String   // Clerk User ID
   
   // --- Input Details ---
-  publicId     String   // Cloudinary Video ID (e.g. "pixelate-uploads/abc...")
+  publicId     String   // Cloudinary Video ID
   originalName String   // "Keynote_2024.mp4"
-  originalUrl  String   // The full Cloudinary secure_url
+  originalUrl  String   // Full Secure URL
   duration     Float    // In seconds
   
+  title        String   @default("Untitled Video")
+  description  String?  @db.Text 
+
   // --- AI Intelligence Layer ---
-  transcript   String?  @db.Text // Output from Whisper
-  
-  // Stores the generated Twitter thread, LinkedIn post, etc.
-  // Structure: { twitter: [], linkedin: "", instagram: "", youtube: "" }
+  transcript   String?  @db.Text 
   socialData   Json?    
   
   // --- Processing Status ---
-  // "processing" | "completed" | "failed"
   status       String   @default("processing") 
 
   // --- Relations ---
-  frames       ProcessedFrame[] // Thumbnails extracted by AI
+  frames       ProcessedFrame[] 
 
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
