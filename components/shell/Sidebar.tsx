@@ -45,7 +45,7 @@ export default function Sidebar() {
 
       {/* Footer / Sign Out */}
       <div className="border-t border-zinc-800 pt-6">
-        <SignOutButton>
+        <SignOutButton redirectUrl="/sign-in">
           <button className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-red-400 transition-colors w-full group">
             <LogOut size={18} className="group-hover:stroke-red-400" />
             <span className="text-sm font-medium">Sign Out</span>
