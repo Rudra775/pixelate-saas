@@ -163,7 +163,7 @@ const worker = new Worker(
     // 👇 CHANGE 2: Create a NEW connection using the exported URL + Options
     // This forces the worker to use its own SSL-enabled connection
     connection: new Redis(redisUrl, redisConnectionOptions),
-    concurrency: 2 
+    concurrency: 1
   }
 );
 
