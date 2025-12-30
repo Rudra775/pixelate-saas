@@ -1,7 +1,7 @@
 "use client";
 
 import { useSignUp } from "@clerk/nextjs";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export default function VerifyEmailPage() {
@@ -9,8 +9,16 @@ export default function VerifyEmailPage() {
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email");
+  const [email, setEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      setEmail(params.get("email"));
+    } catch (e) {
+      setEmail(null);
+    }
+  }, []);
 
   if (!isLoaded) return null;
 

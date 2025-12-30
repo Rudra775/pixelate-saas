@@ -2,7 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from "next/server";
 import { Queue } from 'bullmq';
-import { redisConfig } from "@/lib/redis";
+import { connection } from "@/lib/redis";
 import { auth } from "@clerk/nextjs/server";
 import fs from 'fs';
 import path from 'path';
@@ -14,7 +14,7 @@ const globalQueue = global as unknown as { videoQueue: Queue };
 
 let videoQueue: Queue;
 if (!globalQueue.videoQueue) {
-  globalQueue.videoQueue = new Queue('video-processing', { connection: redisConfig });
+  globalQueue.videoQueue = new Queue('video-processing', { connection });
 }
 videoQueue = globalQueue.videoQueue;
 

@@ -4,9 +4,9 @@ import { ExpressAdapter } from '@bull-board/express';
 import { createBullBoard } from '@bull-board/api';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { Queue } from 'bullmq';
-import { redisConfig } from '@/lib/redis';
+import { connection } from '@/lib/redis';
 
-const videoQueue = new Queue('video-processing', { connection: redisConfig });
+const videoQueue = new Queue('video-processing', { connection });
 
 const serverAdapter = new ExpressAdapter();
 serverAdapter.setBasePath('/admin/queues');

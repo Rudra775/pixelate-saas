@@ -2,9 +2,9 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { Queue, Job } from 'bullmq';
-import { redisConfig } from '@/lib/redis';
+import { connection } from "@/lib/redis"; 
 
-const videoQueue = new Queue('video-processing', { connection: redisConfig });
+const videoQueue = new Queue('video-processing', { connection });
 
 // Update the type definition to wrap params in Promise
 export async function GET(
