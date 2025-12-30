@@ -4,6 +4,7 @@ Pixelate SAAS is a web application designed to optimize and automate the content
 
 ## Conceptual Features
 
+
 ### 1. Video Upload & Storage
 - **Cloudinary Integration**: Securely upload and store video files using Cloudinary as the backend Digital Asset Management (DAM) system.
 
