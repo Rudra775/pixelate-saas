@@ -58,7 +58,7 @@ function extractFrames(videoPath: string, outDir: string, count = 5): Promise<st
         } catch (e) { reject(e); }
       })
       .on("error", (err) => reject(err))
-      .screenshots({ count, folder: outDir, filename: "frame-%02d.jpg" });
+      .screenshots({ count, folder: outDir, filename: "frame-%02d.jpg", size: "640x?" });
   });
 }
 
