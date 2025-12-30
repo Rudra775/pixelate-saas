@@ -1,21 +1,40 @@
 import { Redis } from "ioredis";
 
-const getRedisConnection = () => {
-  // 1. Log (hidden) to prove we see the variable
+const getRedisConfiguration = () => {
   if (process.env.REDIS_URL) {
-    console.log("🔌 Redis: Connecting to Cloud URL...");
-    return new Redis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-    });
+    console.log("🔌 Redis: Using Cloud Connection (SSL)");
+    return {
+      url: process.env.REDIS_URL,
+      options: {
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        // 🛑 CRITICAL: This fixes the ECONNRESET on Render
+        tls: {
+          rejectUnauthorized: false
+        }
+      }
+    };
   }
 
-  // 2. Fallback for Localhost (Only if no Cloud URL)
-  console.log("⚠️ Redis: Fallback to Localhost (127.0.0.1)");
-  return new Redis({
-    host: process.env.REDIS_HOST || '127.0.0.1',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null,
-  });
+  // Fallback for Localhost
+  console.log("⚠️ Redis: Using Localhost");
+  return {
+    url: "redis://127.0.0.1:6379",
+    options: {
+      maxRetriesPerRequest: null,
+    }
+  };
 };
 
-export const redisConfig = getRedisConnection();
+const config = getRedisConfiguration();
+
+// 1. Export the options so the Worker can create its own connections
+export const redisConnectionOptions = {
+  ...config.options,
+};
+
+// 2. Export the URL separately if needed
+export const redisUrl = config.url;
+
+// 3. Export a SHARED instance for the API/Producer
+export const connection = new Redis(config.url, config.options);
