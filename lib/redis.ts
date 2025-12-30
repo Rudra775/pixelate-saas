@@ -1,13 +1,21 @@
-import { RedisOptions } from 'ioredis';
+import { Redis } from "ioredis";
 
-// Add this log to see what's happening when this file is imported
-const host = process.env.REDIS_HOST || '127.0.0.1';
-const port = process.env.REDIS_PORT || '6379';
+const getRedisConnection = () => {
+  // 1. Log (hidden) to prove we see the variable
+  if (process.env.REDIS_URL) {
+    console.log("🔌 Redis: Connecting to Cloud URL...");
+    return new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+    });
+  }
 
-console.log(`🔌 Redis Config Loading: Connecting to ${host}:${port}`);
-
-export const redisConfig: RedisOptions = {
-  host: host,
-  port: parseInt(port),
-  maxRetriesPerRequest: null, //  Important for BullMQ workers!
+  // 2. Fallback for Localhost (Only if no Cloud URL)
+  console.log("⚠️ Redis: Fallback to Localhost (127.0.0.1)");
+  return new Redis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    maxRetriesPerRequest: null,
+  });
 };
+
+export const redisConfig = getRedisConnection();

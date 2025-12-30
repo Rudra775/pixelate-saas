@@ -14,6 +14,20 @@ import cloudinary from "@/lib/cloudinary";
 import { logger } from "@/lib/logger";
 import { db } from "@/lib/prisma"; // Use the singleton DB
 import { UploadApiResponse } from "cloudinary";
+import http from "http";
+
+// 1. START THE SERVER FIRST (So Render sees the port immediately)
+const port = process.env.PORT || 10000;
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end("Worker is alive");
+});
+
+server.listen(port, () => {
+  console.log(`✅ Health check server listening on port ${port}`);
+});
+
+// 2. THEN Start the Worker
 
 //  Configure FFmpeg + FFprobe paths
 if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
