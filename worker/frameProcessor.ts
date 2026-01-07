@@ -191,6 +191,7 @@ const worker = new Worker(
       });
       throw err;
     }
+  },
   {
     // Reuse the shared Redis connection instance to reduce new connections
     connection: sharedRedisConnection,
