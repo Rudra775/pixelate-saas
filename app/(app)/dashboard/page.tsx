@@ -6,17 +6,11 @@ import VideoCard from "@/components/video-detail/VideoCard";
 import { db as prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { NextResponse } from "next/server";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
 
-  if (!userId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-  if (!userId) {
-    redirect("/sign-in");
-  }
+  if (!userId) redirect("/sign-in");
 
   // 1. Fetch Videos & The Best Thumbnail
   // We use 'include' to fetch the highest-scoring frame for each video efficiently

@@ -4,7 +4,9 @@ import SmartCropper from "./SmartCropper";
 import ThumbnailGen from "./ThumbnailGen"; // The new file above
 import { Video, Image as ImageIcon } from "lucide-react";
 
-export default function MediaGallery({ publicId }: { publicId: string }) {
+export default function MediaGallery({ publicId }: { publicId?: string | null }) {
+  if (!publicId) return <div className="text-zinc-500">No media available</div>;
+
   const [activeTab, setActiveTab] = useState<"video" | "image">("video");
 
   return (

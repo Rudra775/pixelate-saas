@@ -1,7 +1,9 @@
 "use client";
 import { getCldVideoUrl } from "next-cloudinary";
 
-export default function VideoPlayer({ publicId }: { publicId: string }) {
+export default function VideoPlayer({ publicId }: { publicId?: string | null }) {
+  if (!publicId) return <div className="aspect-video bg-black flex items-center justify-center text-zinc-400">No video available</div>;
+
   return (
     <div className="aspect-video bg-black relative">
       <video

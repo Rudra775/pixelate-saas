@@ -11,14 +11,19 @@ model Video {
   id           String   @id @default(cuid())
   userId       String   // Clerk User ID
   
-  // --- Input Details ---
-  publicId     String   // Cloudinary Video ID
+// Make Cloudinary ID optional since we might start with Mux
+  publicId     String?  
   originalName String   // "Keynote_2024.mp4"
   originalUrl  String   // Full Secure URL
   duration     Float    // In seconds
   
   title        String   @default("Untitled Video")
-  description  String?  @db.Text 
+  description  String?  @db.Text   
+  
+  // Add Mux specific fields
+  muxAssetId    String?
+  muxUploadId   String?   // To track the upload before processing is done
+  muxPlaybackId String?
 
   // --- AI Intelligence Layer ---
   transcript   String?  @db.Text 
