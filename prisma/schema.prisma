@@ -9,32 +9,28 @@ datasource db {
 
 model Video {
   id           String   @id @default(cuid())
-  userId       String   // Clerk User ID
+  userId       String   
   
-// Make Cloudinary ID optional since we might start with Mux
-  publicId     String?  
-  originalName String   // "Keynote_2024.mp4"
-  originalUrl  String   // Full Secure URL
-  duration     Float    // In seconds
+  // Make Cloudinary ID optional (Mux handles the initial upload)
+  publicId     String?   
+  originalName String   
+  originalUrl  String   
+  duration     Float    
   
   title        String   @default("Untitled Video")
-  description  String?  @db.Text   
+  description  String?  @db.Text 
   
-  // Add Mux specific fields
+  // --- New Mux Fields ---
   muxAssetId    String?
-  muxUploadId   String?   // To track the upload before processing is done
+  muxUploadId   String?   // Links the upload to the webhook
   muxPlaybackId String?
 
-  // --- AI Intelligence Layer ---
+  // --- AI & Status ---
   transcript   String?  @db.Text 
   socialData   Json?    
-  
-  // --- Processing Status ---
   status       String   @default("processing") 
 
-  // --- Relations ---
   frames       ProcessedFrame[] 
-
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
