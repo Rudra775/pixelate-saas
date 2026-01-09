@@ -2,10 +2,11 @@ import { db } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Clock, FileText } from "lucide-react";
+import { ChevronLeft, Clock } from "lucide-react";
 import VideoPlayer from "@/components/video-detail/VideoPlayer";
 import AiAgentLayer from "@/components/video-detail/AiAgentLayer";
-import MediaGallery from "@/components/video-detail/MediaGallery"; //
+import MediaGallery from "@/components/video-detail/MediaGallery";
+import RefreshOnProcess from "@/components/video-detail/RefreshOnProcess"; // <--- IMPORT THIS
 
 // Force dynamic rendering so we always get the latest status
 export const dynamic = "force-dynamic";
@@ -25,13 +26,16 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
   });
 
   if (!video) return notFound();
-  // Optional: Restrict access to owner
-  // if (video.userId !== userId) return notFound();
 
   const isProcessing = video.status === "processing";
 
   return (
     <div className="min-h-screen text-white">
+      {/* 1. AUTO-REFRESHER 
+         If status is "processing", this will reload the data every 5s 
+      */}
+      <RefreshOnProcess isProcessing={isProcessing} />
+
       {/* Header & Breadcrumbs */}
       <div className="mb-8">
         <Link
@@ -69,10 +73,10 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
         {/* LEFT COLUMN: Visuals (2/3 width) */}
         <div className="lg:col-span-2 space-y-8">
           {/* Main Video Player */}
-          <div className="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl relative group">
+          <div className="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl relative group min-h-[400px]">
             {/* Overlay for processing state */}
             {isProcessing && (
-              <div className="absolute inset-0 bg-zinc-950/80 z-10 flex flex-col items-center justify-center p-8 text-center">
+              <div className="absolute inset-0 bg-zinc-950/80 z-20 flex flex-col items-center justify-center p-8 text-center">
                 <div className="w-12 h-12 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-4" />
                 <h3 className="text-lg font-semibold">
                   AI Processing in Progress
@@ -83,7 +87,16 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
                 </p>
               </div>
             )}
-            <VideoPlayer publicId={video.publicId} />
+
+            {/* 2. SAFETY CHECK 
+               Only render the player if we actually have the Cloudinary Public ID.
+               Otherwise, show a blank placeholder.
+            */}
+            {video.publicId ? (
+              <VideoPlayer publicId={video.publicId} />
+            ) : (
+              <div className="w-full h-full bg-zinc-900 min-h-[400px]" />
+            )}
           </div>
 
           <div
@@ -93,7 +106,8 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
                 : ""
             }
           >
-            <MediaGallery publicId={video.publicId} />
+            {/* Same safety check for Media Gallery */}
+            {video.publicId && <MediaGallery publicId={video.publicId} />}
           </div>
         </div>
 
