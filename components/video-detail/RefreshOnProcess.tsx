@@ -7,18 +7,17 @@ export default function RefreshOnProcess({ isProcessing }: { isProcessing: boole
   const router = useRouter();
 
   useEffect(() => {
-    // Only run if the video is still processing
     if (!isProcessing) return;
 
-    // Check every 5 seconds
     const interval = setInterval(() => {
-      console.log("Polling for video status update...");
-      router.refresh(); // This re-fetches the server data
-    }, 5000);
+      // This re-runs the server-side code (page.tsx) to fetch new DB data
+      // without doing a full browser refresh
+      router.refresh(); 
+      console.log("🔄 Polling for updates...");
+    }, 4000);
 
-    // Cleanup interval when component unmounts or processing finishes
     return () => clearInterval(interval);
   }, [isProcessing, router]);
 
-  return null; // This component renders nothing visibly
+  return null;
 }

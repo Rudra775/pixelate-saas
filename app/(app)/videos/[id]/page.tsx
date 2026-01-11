@@ -6,7 +6,7 @@ import { ChevronLeft, Clock } from "lucide-react";
 import VideoPlayer from "@/components/video-detail/VideoPlayer";
 import AiAgentLayer from "@/components/video-detail/AiAgentLayer";
 import MediaGallery from "@/components/video-detail/MediaGallery";
-import RefreshOnProcess from "@/components/video-detail/RefreshOnProcess"; // <--- IMPORT THIS
+import RefreshOnProcess from "@/components/video-detail/RefreshOnProcess"; 
 
 // Force dynamic rendering so we always get the latest status
 export const dynamic = "force-dynamic";
@@ -27,13 +27,13 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
 
   if (!video) return notFound();
 
-  const isProcessing = video.status === "processing";
+  // 🟢 NOTE: We reused the 'muxUploadId' column for Cloudinary ID
+  const cloudinaryId = video.muxUploadId; 
+  const isProcessing = video.status === "processing" || video.status === "uploading";
 
   return (
     <div className="min-h-screen text-white">
-      {/* 1. AUTO-REFRESHER 
-         If status is "processing", this will reload the data every 5s 
-      */}
+      {/* 1. AUTO-REFRESHER */}
       <RefreshOnProcess isProcessing={isProcessing} />
 
       {/* Header & Breadcrumbs */}
@@ -47,7 +47,7 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">
-              {video.originalName}
+              {video.originalName || "Untitled Video"}
             </h1>
             <div className="flex items-center gap-4 text-sm text-zinc-400">
               <span className="flex items-center gap-1">
@@ -88,12 +88,9 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* 2. SAFETY CHECK 
-               Only render the player if we actually have the Cloudinary Public ID.
-               Otherwise, show a blank placeholder.
-            */}
-            {video.publicId ? (
-              <VideoPlayer publicId={video.publicId} />
+            {/* 🟢 FIX: Use cloudinaryId (muxUploadId) */}
+            {cloudinaryId ? (
+              <VideoPlayer publicId={cloudinaryId} />
             ) : (
               <div className="w-full h-full bg-zinc-900 min-h-[400px]" />
             )}
@@ -106,8 +103,8 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
                 : ""
             }
           >
-            {/* Same safety check for Media Gallery */}
-            {video.publicId && <MediaGallery publicId={video.publicId} />}
+            {/* 🟢 FIX: Use cloudinaryId (muxUploadId) */}
+            {cloudinaryId && <MediaGallery publicId={cloudinaryId} />}
           </div>
         </div>
 
