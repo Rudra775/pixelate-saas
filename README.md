@@ -3,119 +3,67 @@
 ![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
 ![Stack](https://img.shields.io/badge/Stack-Next.js%20%7C%20Cloudinary%20%7C%20Prisma-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+---
 
-**Pixelate SaaS** is a high-performance web application designed to optimize and automate the social media content creation workflow. By transforming a single uploaded video into a suite of platform-specific image assets, Pixelate leverages Cloudinary’s advanced AI and video capabilities to streamline production for content creators.
+## ⚡ Project Overview
+
+**Pixelate** is a robust video processing pipeline designed to automate the creation of social media assets. It solves the challenge of handling long-running, compute-heavy tasks in a web environment by utilizing a distributed task queue.
+
+Users upload videos directly to a CDN, while a background microservice asynchronously analyzes the content—generating transcripts, smart-cropped thumbnails, and AI-driven social media posts—without impacting the responsiveness of the user interface.
 
 ---
 
-## 🚀 Conceptual Features
+## 🏗️ System Architecture
 
+Pixelate implements a **Producer–Consumer pattern** to ensure scalability and reliability.
 
-### 1. Video Upload & Storage
-* **Secure DAM Integration:** Direct integration with **Cloudinary** for secure video uploads and backend Digital Asset Management (DAM).
-* **Scalable Storage:** Handles high-resolution video files efficiently off-server.
+> 📌 **Architecture Diagram**  
+> *(Keep the diagram here)*
 
-### 2. AI-Driven Best Frame Selection
-* **Automated Intelligence:** Utilizes Cloudinary’s AI analysis to identify and extract the most engaging frames (e.g., clear faces, action shots, keyframes).
-* **Efficiency:** Eliminates the tedious process of manual frame scrubbing and screenshotting.
+### 🔁 Data Flow
 
-### 3. Dynamic Asset Generation
-Generate all necessary assets for a multi-platform campaign in a single click. The system automatically formats images with correct aspect ratios:
-* **Instagram/Facebook:** 1:1 (Square), 4:5 (Vertical Feed), 9:16 (Stories/Reels).
-* **X (Twitter):** 16:9 (Social Card).
+1. **Direct-to-Cloud Upload**  
+   Uses signed URLs to upload large files directly to **Cloudinary**, bypassing the application server to minimize latency and bandwidth costs.
 
-### 4. Intelligent Cropping
-* **Content Awareness:** Implements Cloudinary's `g_auto` (gravity auto) transformation.
-* **Subject Focus:** Ensures the main subject (e.g., a speaker's face) remains centered and visible, even when cropping a vertical Story from a widescreen video source.
+2. **Job Orchestration**  
+   The API acts as a **producer**, pushing a lightweight job reference to a **Redis queue** immediately upon upload success.
 
-### 5. Asset Management Dashboard
-* **Centralized Hub:** A clean UI built with **Prisma** to track upload history, manage generated assets, and monitor processing status.
+3. **Asynchronous Processing**  
+   A decoupled **Node.js worker** consumes jobs, orchestrating:
+   - AI transcription (Groq / Whisper)
+   - Image transformation and smart cropping
 
-### 6. Roadmap (Planned Features)
-* **Branded Overlays:** Dynamic injection of logos, watermarks, and text overlays using transformation layers.
+4. **State Synchronization**  
+   The frontend polls the database for status updates (`processing → completed`), providing real-time feedback to the user.
 
 ---
 
-## 🛠 Technology Stack
+## 🚀 Key Features
 
-Pixelate is built using a modern full-stack approach, prioritizing type safety and server-side performance.
+- **Event-Driven Backend**  
+  Powered by **BullMQ (Redis)** to efficiently buffer traffic spikes and handle bursty workloads.
 
-| Category | Technology | Purpose |
-| :--- | :--- | :--- |
-| **Framework** | **Next.js (App Router)** | Server-side rendering, API routes, and modern React architecture. |
-| **Language** | **TypeScript** | Ensures code quality, strictly typed interfaces, and scalability. |
-| **Media Engine** | **Cloudinary** | The backbone for video storage, AI analysis, and image transformations. |
-| **Database** | **Prisma** | Modern ORM for managing user data, video metadata, and asset history. |
-| **Styling** | **Tailwind CSS** | Utility-first framework for rapid, responsive UI development. |
+- **AI Intelligence Layer**  
+  Uses **Llama 3 (via Groq)** to generate viral tweets, LinkedIn posts, and SEO-optimized descriptions.
 
----
+- **Smart Cropping**  
+  Automated facial detection to generate **9:16 vertical shorts** from landscape videos.
 
-## ⚡ Getting Started
+- **Fault Tolerance**  
+  Automatic **dead-letter queues** and retry logic for failed AI or processing requests.
 
-Follow these instructions to set up the project locally.
-
-### Prerequisites
-* **Node.js** (v18 or higher)
-* **npm** or **yarn**
-* **Cloudinary Account** (Free tier is sufficient for development)
-* **PostgreSQL/MySQL Database** (Local or cloud-hosted)
-
-### Installation
-
-1.  **Clone the repository**
-    ```bash
-    git clone [https://github.com/your-username/pixelate-saas.git](https://github.com/your-username/pixelate-saas.git)
-    cd pixelate-saas
-    ```
-
-2.  **Install dependencies**
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-
-3.  **Environment Configuration**
-    Create a `.env` file in the root directory and add your credentials:
-    ```env
-    # Database
-    DATABASE_URL="postgresql://user:password@localhost:5432/pixelate?schema=public"
-
-    # Cloudinary Credentials
-    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="your_cloud_name"
-    CLOUDINARY_API_KEY="your_api_key"
-    CLOUDINARY_API_SECRET="your_api_secret"
-    
-    # NextAuth (If Authentication is implemented)
-    NEXTAUTH_SECRET="your_secret"
-    NEXTAUTH_URL="http://localhost:3000"
-    ```
-
-4.  **Database Setup**
-    Initialize Prisma and push the schema to your database:
-    ```bash
-    npx prisma generate
-    npx prisma db push
-    ```
-
-5.  **Run the Development Server**
-    ```bash
-    npm run dev
-    ```
-
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Type Safety**  
+  End-to-end **TypeScript validation**, from the database layer (**Prisma**) to the UI.
 
 ---
 
-## 📂 Project Structure
+## 🛠️ Tech Stack
 
-```text
-├── app/                  # Next.js App Router directories
-│   ├── api/              # Backend API routes (Cloudinary signing, DB ops)
-│   ├── (dashboard)/      # Protected dashboard routes
-│   └── page.tsx          # Landing page
-├── components/           # Reusable UI components
-├── lib/                  # Utility functions (Prisma client, Cloudinary helpers)
-├── prisma/               # Database schema
-└── public/               # Static assets/pixelate-saas.git
-cd cloudinary-saas
+| Component  | Technology                     | Role                                      |
+|-----------|--------------------------------|-------------------------------------------|
+| Frontend  | Next.js 14 (App Router)         | Server-side rendering & UI                |
+| Queue     | Redis + BullMQ                  | Message broker & job management           |
+| Worker    | Node.js (TypeScript)            | Dedicated processing microservice         |
+| Database  | PostgreSQL + Prisma             | Relational data & state management        |
+| AI Models | Whisper & Llama 3               | Transcription & content generation        |
+| Storage   | Cloudinary                      | CDN & media transformation                |
