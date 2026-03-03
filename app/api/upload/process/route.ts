@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { db as prisma } from "@/lib/prisma";
-import { Queue } from "bullmq";
-import { connection } from "@/lib/redis"; // Your shared Redis connection
-
-// Initialize Queue (Producer Side)
-const processingQueue = new Queue("video-processing", { connection });
+import { inngest } from "@/inngest/client";
 
 export async function POST(request: Request) {
   try {
@@ -33,13 +29,15 @@ export async function POST(request: Request) {
       },
     });
 
-    // 3. Add Job to Redis Queue 🚀
-    // This wakes up your worker.ts
-    await processingQueue.add("process-video", {
-      videoId: video.id,
-      userId: userId,
-      cloudPublicId: publicId,
-      cloudSecureUrl: secureUrl,
+    // 3. Dispatch Inngest Event 🚀
+    await inngest.send({
+      name: "video/process.started",
+      data: {
+        videoId: video.id,
+        userId: userId,
+        cloudPublicId: publicId,
+        cloudSecureUrl: secureUrl,
+      },
     });
 
     console.log(`✅ Job Added to Queue for Video: ${video.id}`);

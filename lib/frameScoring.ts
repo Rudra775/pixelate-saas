@@ -48,4 +48,3 @@ export async function scoreImage(imgPath: string): Promise<number> {
 
   return score;
 }
-// ...existing code...

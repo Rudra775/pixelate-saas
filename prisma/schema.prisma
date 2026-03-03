@@ -29,6 +29,7 @@ model Video {
   transcript   String?  @db.Text 
   socialData   Json?    
   status       String   @default("processing") 
+  smartCropUrl String?
 
   frames       ProcessedFrame[] 
   createdAt    DateTime @default(now())

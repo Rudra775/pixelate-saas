@@ -6,7 +6,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 // 1. ROBUST TRANSCRIPTION (Whisper)
 // ------------------------------------------------------------------
 export async function getTranscript(audioUrl: string) {
-  console.log("🎙️ Starting transcription for:", audioUrl);
+  console.log("Starting transcription for:", audioUrl);
   try {
     const response = await fetch(audioUrl);
     if (!response.ok) throw new Error(`Failed to fetch audio: ${response.statusText}`);
@@ -24,7 +24,7 @@ export async function getTranscript(audioUrl: string) {
 
     return completion.text;
   } catch (error) {
-    console.error("❌ Transcription Error:", error);
+    console.error("Transcription Error:", error);
     // Return empty string so the pipeline continues (we can still generate thumbnails)
     return ""; 
   }
@@ -34,7 +34,7 @@ export async function getTranscript(audioUrl: string) {
 // 2. SOCIAL GENERATION (Llama 3 70B - Strict JSON)
 // ------------------------------------------------------------------
 export async function generateSocialInfo(transcript: string) {
-  console.log("🧠 Generating social metadata...");
+  console.log("Generating social metadata...");
 
   // If transcription failed, return generic data immediately
   if (!transcript || transcript.length < 50) {
@@ -84,7 +84,7 @@ export async function generateSocialInfo(transcript: string) {
 
   } catch (error) {
     console.error("⚠️ AI Generation Error:", error);
-    // 🟢 CHANGE 3: Fallback Data (Prevents Worker Crash)
+    // CHANGE 3: Fallback Data (Prevents Worker Crash)
     return getFallbackData();
   }
 }

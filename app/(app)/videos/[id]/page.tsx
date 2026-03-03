@@ -27,7 +27,6 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
 
   if (!video) return notFound();
 
-  // 🟢 NOTE: We reused the 'muxUploadId' column for Cloudinary ID
   const cloudinaryId = video.muxUploadId; 
   const isProcessing = video.status === "processing" || video.status === "uploading";
 
@@ -88,7 +87,7 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
               </div>
             )}
 
-            {/* 🟢 FIX: Use cloudinaryId (muxUploadId) */}
+            {/* FIX: Use cloudinaryId (muxUploadId) */}
             {cloudinaryId ? (
               <VideoPlayer publicId={cloudinaryId} />
             ) : (
@@ -103,7 +102,7 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
                 : ""
             }
           >
-            {/* 🟢 FIX: Use cloudinaryId (muxUploadId) */}
+            {/* FIX: Use cloudinaryId (muxUploadId) */}
             {cloudinaryId && <MediaGallery publicId={cloudinaryId} />}
           </div>
         </div>

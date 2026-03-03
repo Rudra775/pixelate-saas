@@ -6,7 +6,7 @@ import { SignOutButton } from "@clerk/nextjs";
 
 export default function Sidebar() {
   const pathname = usePathname();
-
+  
   const navItems = [
     { label: "Dashboard", href: "/dashboard", icon: <Home size={20} /> },
     { label: "Upload Video", href: "/upload", icon: <Upload size={20} /> },
