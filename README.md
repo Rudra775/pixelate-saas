@@ -18,7 +18,7 @@ Users upload videos directly to a CDN, while a background microservice asynchron
 Pixelate implements a **Producer–Consumer pattern** to ensure scalability and reliability.
 
 > 📌 **Architecture Diagram**  
-> *![Pixelate System Architecture](assets/Screenshot%202026-01-14%20001112.png.png)*
+> *![Pixelate System Architecture](assets/Screenshot%202026-01-14%20001112.png)*
 
 ### 🔁 Data Flow
 
