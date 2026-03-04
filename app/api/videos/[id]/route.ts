@@ -1,65 +1,71 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/prisma";
+import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
-import { v2 as cloudinary } from "cloudinary";
+import { db as prisma } from "@/lib/prisma";
 
-// 1. GET: Fetch data for the Workstation (Player + AI Results)
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> } // Next.js 15 Async Params
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const { id } = await params;
+    const body = await request.json();
+    const { title } = body;
 
-    const video = await db.video.findUnique({
-      where: { id },
+    if (!title) {
+      return new NextResponse("Title is required", { status: 400 });
+    }
+
+    const resolvedParams = await context.params;
+
+    const video = await prisma.video.update({
+      where: {
+        id: resolvedParams.id,
+        userId: userId,
+      },
+      data: {
+        originalName: title,
+      },
     });
-
-    if (!video) return NextResponse.json({ error: "Not Found" }, { status: 404 });
-    if (video.userId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     return NextResponse.json(video);
   } catch (error) {
-    return NextResponse.json({ error: "Internal Error" }, { status: 500 });
+    console.error("[VIDEO_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
 
-// 2. DELETE: Remove video from DB and Cloudinary
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  request: Request,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!userId) return new NextResponse("Unauthorized", { status: 401 });
 
-    const { id } = await params;
+    const resolvedParams = await context.params;
 
-    // A. Check ownership
-    const video = await db.video.findUnique({ where: { id } });
-    if (!video || video.userId !== userId) {
-      return NextResponse.json({ error: "Not Found or Forbidden" }, { status: 403 });
-    }
-
-    // B. Delete from Cloudinary (Cleanup)
-    // Note: 'video' resource type is required for deleting videos
-    try {
-      if (video.publicId) {
-        await cloudinary.uploader.destroy(video.publicId, { resource_type: 'video' });
+    const video = await prisma.video.findUnique({
+      where: {
+        id: resolvedParams.id,
+        userId: userId,
       }
-    } catch (cldError) {
-      console.error("Cloudinary Delete Warning:", cldError);
-      // We continue to delete from DB even if cloud delete fails
+    });
+
+    if (!video) {
+      return new NextResponse("Not Found", { status: 404 });
     }
 
-    // C. Delete from Database
-    await db.video.delete({ where: { id } });
+    await prisma.video.delete({
+      where: {
+        id: resolvedParams.id,
+      },
+    });
 
-    return NextResponse.json({ success: true });
+    return new NextResponse("Deleted", { status: 200 });
   } catch (error) {
-    return NextResponse.json({ error: "Delete Failed" }, { status: 500 });
+    console.error("[VIDEO_DELETE]", error);
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }
