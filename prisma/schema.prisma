@@ -30,6 +30,8 @@ model Video {
   socialData   Json?    
   status       String   @default("processing") 
   smartCropUrl String?
+  cloudinaryPublicId  String?
+  cloudinarySecureUrl String?
 
   frames       ProcessedFrame[] 
   createdAt    DateTime @default(now())

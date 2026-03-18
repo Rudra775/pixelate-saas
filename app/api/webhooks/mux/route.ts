@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
       // Trigger Cloudinary
       if (playbackId) {
-        const muxUrl = `https://stream.mux.com/${playbackId}.m3u8`;
+        const muxUrl = `https://stream.mux.com/${playbackId}/high.mp4`;
         
         // Fire and forget (don't await) to keep webhook fast
         cloudinary.uploader.upload(muxUrl, {
