@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import VideoPlayer from "@/components/video-detail/VideoPlayer";
 import AiAgentLayer from "@/components/video-detail/AiAgentLayer";
 import MediaGallery from "@/components/video-detail/MediaGallery";
@@ -52,16 +53,16 @@ export default async function VideoWorkstationPage({ params }: PageProps) {
               <span className="flex items-center gap-1">
                 <Clock size={14} /> {Math.round(video.duration)}s
               </span>
-              {/* Status Badge */}
-              <span
-                className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
+              <Badge
+                variant={isProcessing ? "secondary" : "default"}
+                className={`uppercase tracking-wider ${
                   isProcessing
-                    ? "bg-yellow-500/10 text-yellow-500"
-                    : "bg-green-500/10 text-green-500"
+                    ? "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
+                    : "bg-green-500/10 text-green-500 hover:bg-green-500/20"
                 }`}
               >
                 {video.status}
-              </span>
+              </Badge>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
-@plugin "daisyui";
+
 
 @theme inline {
   --color-background: var(--background);

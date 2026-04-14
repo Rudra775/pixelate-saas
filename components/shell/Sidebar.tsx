@@ -30,10 +30,10 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+              className={`inline-flex shrink-0 items-center rounded-lg border bg-clip-padding font-medium whitespace-nowrap outline-none select-none w-full justify-start gap-3 px-3 py-3 transition-all ${
                 isActive
-                  ? "bg-violet-500/10 text-violet-400 border border-violet-500/20"
-                  : "text-zinc-400 hover:text-white hover:bg-zinc-900"
+                  ? "bg-violet-500/10 text-violet-400 border-violet-500/20 hover:bg-violet-500/20 hover:text-violet-300"
+                  : "border-transparent text-zinc-400 hover:text-white hover:bg-zinc-900"
               }`}
             >
               {item.icon}
@@ -46,7 +46,7 @@ export default function Sidebar() {
       {/* Footer / Sign Out */}
       <div className="border-t border-zinc-800 pt-6">
         <SignOutButton redirectUrl="/sign-in">
-          <button className="flex items-center gap-3 px-3 py-2 text-zinc-500 hover:text-red-400 transition-colors w-full group">
+          <button className="flex items-center gap-3 px-3 py-3 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-colors w-full group">
             <LogOut size={18} className="group-hover:stroke-red-400" />
             <span className="text-sm font-medium">Sign Out</span>
           </button>

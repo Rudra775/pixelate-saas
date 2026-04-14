@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { Video, ProcessedFrame } from '@prisma/client';
 import { Clock, CheckCircle, AlertCircle, Trash2, Edit2, X, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
 // Define the type to include the relation we fetched
 type VideoWithFrame = Video & {
@@ -28,7 +29,6 @@ export default function VideoCard({ video }: VideoCardProps) {
   const rawThumbnailUrl = video.frames?.[0]?.imageUrl || video.originalUrl;
 
   // LOGIC: Force Cloudinary to give us a small, compressed thumbnail
-  // This prevents the "13MB bomb"
   const thumbnailUrl = rawThumbnailUrl
     ? rawThumbnailUrl
         .replace('/upload/', '/upload/w_400,h_225,c_fill,q_auto,f_jpg/') // Resize + Force JPG
@@ -87,7 +87,11 @@ export default function VideoCard({ video }: VideoCardProps) {
   };
 
   return (
-    <div className={`bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-700 transition-all relative ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}>
+    <motion.div 
+      whileHover={{ y: -4, scale: 1.01 }}
+      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+      className={`bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-zinc-700 hover:shadow-xl hover:shadow-black/50 transition-colors relative flex flex-col h-full ${isDeleting ? 'opacity-50 pointer-events-none' : ''}`}
+    >
       {/* Actions Layer */}
       <div className="absolute top-2 right-2 z-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button 
@@ -155,6 +159,6 @@ export default function VideoCard({ video }: VideoCardProps) {
            {video.status === 'failed' && <><AlertCircle size={14} className="text-red-500"/> Failed</>}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

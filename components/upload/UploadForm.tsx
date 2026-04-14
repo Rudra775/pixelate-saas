@@ -2,6 +2,8 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function UploadForm() {
   const router = useRouter();
@@ -114,7 +116,12 @@ export default function UploadForm() {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto p-8 border border-zinc-800 rounded-xl bg-zinc-950 text-center shadow-2xl shadow-zinc-900/50">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="w-full max-w-xl mx-auto p-8 border border-zinc-800 rounded-xl bg-zinc-950/50 backdrop-blur-md text-center shadow-2xl shadow-violet-500/10"
+    >
       <input 
         type="file" 
         accept="video/*"
@@ -142,11 +149,9 @@ export default function UploadForm() {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
                         </svg>
                     </div>
-                    <button 
-                    className="px-6 py-2.5 text-sm font-medium bg-zinc-100 text-zinc-900 rounded-md hover:bg-zinc-200 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-zinc-950 transition-colors"
-                    >
-                    Select File
-                    </button>
+                    <Button variant="secondary" className="px-6 py-5 cursor-pointer z-10 relative">
+                      Select File
+                    </Button>
                  </div>
             </div>
         ) : (
@@ -166,6 +171,6 @@ export default function UploadForm() {
             </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

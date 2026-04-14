@@ -1,21 +1,15 @@
 import { NextResponse } from 'next/server';
-import { db as prisma } from '@/lib/prisma';
 import Webhooks from '@mux/mux-node';
-import { v2 as cloudinary } from 'cloudinary';
+import { PrismaVideoRepository } from '@/infrastructure/repositories/PrismaVideoRepository';
+import { CloudinaryMediaService } from '@/infrastructure/services/CloudinaryMediaService';
+import { HandleVideoAssetReadyUseCase } from '@/core/application/use-cases/HandleVideoAssetReadyUseCase';
 
 // Initialize Secrets
 const webhookSecret = process.env.MUX_WEBHOOK_SECRET!;
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
 export async function POST(req: Request) {
   try {
-    // 1. Grab body and signature
+    // 1. Grab body and signature (Framework Concerns)
     const body = await req.text();
     const headers = req.headers;
     const signature = headers.get('mux-signature');
@@ -25,7 +19,7 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
 
-    // 2. Verify the Signature
+    // 2. Verify the Signature (Security Concern)
     try {
       (Webhooks as any).verify(body, signature, webhookSecret);
     } catch (err) {
@@ -33,40 +27,38 @@ export async function POST(req: Request) {
       return new NextResponse("Invalid Signature", { status: 401 });
     }
 
-    // 3. Parse and Process Event
+    // 3. Parse Event
     const event = JSON.parse(body);
     const { type, data } = event;
 
+    // 4. Delegate to Use Case (Business Logic)
     if (type === 'video.asset.ready') {
       const playbackId = data.playback_ids?.[0]?.id;
       const uploadId = data.upload_id; 
 
       if (!uploadId) return new NextResponse("No Upload ID", { status: 200 });
+      if (!playbackId) return new NextResponse("No Playback ID", { status: 200 });
 
-      // Update Database
-      await prisma.video.updateMany({
-        where: { muxUploadId: uploadId },
-        data: {
-          status: 'ready',
-          muxPlaybackId: playbackId,
+      // Dependency Injection (Manually instantiating our dependencies)
+      // In a more complex app, you could use a container like tsyringe or awilix here.
+      const videoRepository = new PrismaVideoRepository();
+      const mediaStorageService = new CloudinaryMediaService();
+      
+      const handleVideoReadyUseCase = new HandleVideoAssetReadyUseCase(
+        videoRepository,
+        mediaStorageService
+      );
+
+      // Execute application pure logic
+      try {
+        await handleVideoReadyUseCase.execute({
+          uploadId,
+          playbackId,
           duration: data.duration,
-        }
-      });
-
-      // Trigger Cloudinary
-      if (playbackId) {
-        const muxUrl = `https://stream.mux.com/${playbackId}/high.mp4`;
-        
-        // Fire and forget (don't await) to keep webhook fast
-        cloudinary.uploader.upload(muxUrl, {
-          resource_type: 'video',
-          public_id: `pixelate-videos/${playbackId}`,
-          notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/cloudinary`
-        }).then((result) => {
-             console.log("✅ Cloudinary Upload Success:", result.public_id);
-        }).catch(err => {
-             console.error("❌ Cloudinary Handoff Failed:", err);
+          appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
         });
+      } catch (err) {
+        console.error("Use Case Failed:", err);
       }
     }
 
@@ -76,4 +68,4 @@ export async function POST(req: Request) {
     console.error("Webhook Error:", error);
     return new NextResponse("Internal Server Error", { status: 500 });
   }
-}
+}

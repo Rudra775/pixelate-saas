@@ -1,4 +1,3 @@
-// app/dashboard/page.tsx
 import React from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
@@ -6,6 +5,7 @@ import VideoCard from "@/components/video-detail/VideoCard";
 import { db as prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 export default async function DashboardPage() {
   const { userId } = await auth();
@@ -30,11 +30,10 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <Link
-          href="/upload"
-          className="bg-white text-zinc-950 px-4 py-2 rounded-lg font-semibold hover:bg-zinc-200 transition-colors flex items-center gap-2"
-        >
-          <Plus size={20} /> Upload New Video
+        <Link href="/upload">
+          <Button className="font-semibold flex items-center gap-2">
+            <Plus size={20} /> Upload New Video
+          </Button>
         </Link>
       </div>
 

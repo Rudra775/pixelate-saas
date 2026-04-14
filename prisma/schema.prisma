@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
   engineType = "binary"
 }
 
@@ -8,52 +8,52 @@ datasource db {
 }
 
 model Video {
-  id           String   @id @default(cuid())
-  userId       String   
-  
+  id     String @id @default(cuid())
+  userId String
+
   // Make Cloudinary ID optional (Mux handles the initial upload)
-  publicId     String?   
-  originalName String   
-  originalUrl  String   
-  duration     Float    
-  
-  title        String   @default("Untitled Video")
-  description  String?  @db.Text 
-  
+  publicId     String?
+  originalName String
+  originalUrl  String
+  duration     Float
+
+  title       String  @default("Untitled Video")
+  description String? @db.Text
+
   // --- New Mux Fields ---
   muxAssetId    String?
-  muxUploadId   String?   // Links the upload to the webhook
+  muxUploadId   String? // Links the upload to the webhook
   muxPlaybackId String?
 
   // --- AI & Status ---
-  transcript   String?  @db.Text 
-  socialData   Json?    
-  status       String   @default("processing") 
-  smartCropUrl String?
+  transcript          String? @db.Text
+  socialData          Json?
+  status              String  @default("processing")
+  smartCropUrl        String?
   cloudinaryPublicId  String?
   cloudinarySecureUrl String?
 
-  frames       ProcessedFrame[] 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  frames    ProcessedFrame[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@index([userId])
 }
 
 model ProcessedFrame {
-  id        String   @id @default(cuid())
-  userId    String
-  
+  id     String @id @default(cuid())
+  userId String
+
   // Relationship to Parent Video
-  videoId   String
-  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  videoId String
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   // Cloudinary Image Info
-  publicId  String   @unique
-  imageUrl  String   
-  
+  publicId String @unique
+  imageUrl String
+
   // AI Scoring (How good is this frame?)
-  score     Float    
+  score Float
 
   createdAt DateTime @default(now())
 

@@ -1,0 +1,111 @@
+
+> cloduinary-saas@0.1.0 build
+> npx prisma generate && next build
+
+[dotenv@17.2.3] injecting env (9) from .env -- tip: ⚙️  enable debug logging with { debug: true }
+Loaded Prisma config from prisma.config.cjs.
+
+Prisma schema loaded from prisma\schema.prisma.
+
+✔ Generated Prisma Client (v7.2.0) to .\node_modules\@prisma\client in 79ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Want to turn off tips and other hints? https://pris.ly/tip-4-nohints
+
+▲ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+Error: Can't resolve 'daisyui' in 'C:\Rudra\projects\cloduinary-saas\app'
+    [2m[at finishWithoutResolve (C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\Resolver.js:565:18)][0m
+    [2m[at C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\Resolver.js:657:14][0m
+    [2m[at C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\Resolver.js:718:5][0m
+    [2m[at eval (eval at create (C:\Rudra\projects\cloduinary-saas\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:15:1)][0m
+    [2m[at C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\Resolver.js:718:5][0m
+    [2m[at eval (eval at create (C:\Rudra\projects\cloduinary-saas\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:27:1)][0m
+    [2m[at C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\DescriptionFilePlugin.js:89:43][0m
+    [2m[at C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\Resolver.js:718:5][0m
+    [2m[at eval (eval at create (C:\Rudra\projects\cloduinary-saas\node_modules\tapable\lib\HookCodeFactory.js:31:10), <anonymous>:15:1)][0m
+    [2m[at C:\Rudra\projects\cloduinary-saas\node_modules\enhanced-resolve\lib\Resolver.js:718:5][0m {
+  details: "resolve 'daisyui' in 'C:\\Rudra\\projects\\cloduinary-saas\\app'\n" +
+    '  Parsed request is a module\n' +
+    '  using description file: C:\\Rudra\\projects\\cloduinary-saas\\package.json (relative path: ./app)\n' +
+    '    resolve as module\n' +
+    "      C:\\Rudra\\projects\\cloduinary-saas\\app\\node_modules doesn't exist or is not a directory\n" +
+    '      looking for modules in C:\\Rudra\\projects\\cloduinary-saas\\node_modules\n' +
+    '        single file module\n' +
+    '          using description file: C:\\Rudra\\projects\\cloduinary-saas\\package.json (relative path: ./node_modules/daisyui)\n' +
+    '            no extension\n' +
+    "              C:\\Rudra\\projects\\cloduinary-saas\\node_modules\\daisyui doesn't exist\n" +
+    '            .js\n' +
+    "              C:\\Rudra\\projects\\cloduinary-saas\\node_modules\\daisyui.js doesn't exist\n" +
+    '            .json\n' +
+    "              C:\\Rudra\\projects\\cloduinary-saas\\node_modules\\daisyui.json doesn't exist\n" +
+    '            .node\n' +
+    "              C:\\Rudra\\projects\\cloduinary-saas\\node_modules\\daisyui.node doesn't exist\n" +
+    '            .ts\n' +
+    "              C:\\Rudra\\projects\\cloduinary-saas\\node_modules\\daisyui.ts doesn't exist\n" +
+    "        C:\\Rudra\\projects\\cloduinary-saas\\node_modules\\daisyui doesn't exist\n" +
+    "      C:\\Rudra\\projects\\node_modules doesn't exist or is not a directory\n" +
+    "      C:\\Rudra\\node_modules doesn't exist or is not a directory\n" +
+    "      C:\\node_modules doesn't exist or is not a directory"
+}
+
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./app/globals.css
+Error evaluating Node.js code
+CssSyntaxError: tailwindcss: C:\Rudra\projects\cloduinary-saas\app\globals.css:1:1: Can't resolve 'daisyui' in 'C:\Rudra\projects\cloduinary-saas\app'
+    at Input.error (node_modules/postcss/lib/input.js:135:16) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\node_modules_fe693df6._.js:4651:22]
+    at Root.error (node_modules/postcss/lib/node.js:146:32) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\node_modules_fe693df6._.js:928:38]
+    [at Object.Once (C:\Rudra\projects\cloduinary-saas\node_modules\@tailwindcss\postcss\dist\index.js:10:6911)]
+    at async LazyResult.runAsync (node_modules/postcss/lib/lazy-result.js:293:11) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\node_modules_fe693df6._.js:6206:21]
+    at async transform (turbopack:///[turbopack-node]/transforms/postcss.ts:70:34) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\[root-of-the-server]__51225daf._.js:146:36]
+    at async run (turbopack:///[turbopack-node]/ipc/evaluate.ts:92:23) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\[root-of-the-server]__974941ed._.js:443:31]
+
+Import trace:
+  Client Component Browser:
+    ./app/globals.css [Client Component Browser]
+    ./app/layout.tsx [Server Component]
+
+
+./app/api/jobs/[id]/route.ts:5:1
+Module not found: Can't resolve '@/lib/redis'
+[0m [90m 3 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m'next/server'[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m { [33mQueue[39m[33m,[39m [33mJob[39m } [36mfrom[39m [32m'bullmq'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { connection } [36mfrom[39m [32m"@/lib/redis"[39m[33m;[39m 
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 6 |[39m
+ [90m 7 |[39m [36mconst[39m videoQueue [33m=[39m [36mnew[39m [33mQueue[39m([32m'video-processing'[39m[33m,[39m { connection })[33m;[39m
+ [90m 8 |[39m[0m
+
+Import map: aliased to relative './lib/redis' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./app/api/jobs/route.ts:5:1
+Module not found: Can't resolve '@/lib/redis'
+[0m [90m 3 |[39m [36mimport[39m { [33mNextResponse[39m } [36mfrom[39m [32m"next/server"[39m[33m;[39m
+ [90m 4 |[39m [36mimport[39m { [33mQueue[39m } [36mfrom[39m [32m'bullmq'[39m[33m;[39m
+[31m[1m>[22m[39m[90m 5 |[39m [36mimport[39m { connection } [36mfrom[39m [32m"@/lib/redis"[39m[33m;[39m
+ [90m   |[39m [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m
+ [90m 6 |[39m [36mimport[39m { auth } [36mfrom[39m [32m"@clerk/nextjs/server"[39m[33m;[39m
+ [90m 7 |[39m [36mimport[39m fs [36mfrom[39m [32m'fs'[39m[33m;[39m
+ [90m 8 |[39m [36mimport[39m path [36mfrom[39m [32m'path'[39m[33m;[39m[0m
+
+Import map: aliased to relative './lib/redis' inside of [project]/
+
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at async transform (turbopack:///[turbopack-node]/transforms/postcss.ts:70:34) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\[root-of-the-server]__51225daf._.js:146:36])
+    at async run (turbopack:///[turbopack-node]/ipc/evaluate.ts:92:23) [C:\Rudra\projects\cloduinary-saas\.next\build\chunks\[root-of-the-server]__974941ed._.js:443:31])
+    at <unknown> (./app/api/jobs/[id]/route.ts:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./app/api/jobs/route.ts:5:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

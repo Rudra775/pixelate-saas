@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Copy, Check, Twitter, Linkedin, Instagram, Youtube, FileText, BrainCircuit } from "lucide-react";
 import { Video } from "@prisma/client";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AiAgentLayer({ video }: { video: Video }) {
   const [activeTab, setActiveTab] = useState<"twitter" | "linkedin" | "instagram" | "youtube">("twitter");
@@ -59,7 +60,10 @@ export default function AiAgentLayer({ video }: { video: Video }) {
             {tab.icon}
             <span className="text-xs">{tab.label}</span>
             {activeTab === tab.id && (
-                <span className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-500 animate-in fade-in slide-in-from-bottom-1 duration-200" />
+                <motion.span 
+                  layoutId="activeTabIndicator"
+                  className="absolute bottom-0 left-0 w-full h-0.5 bg-violet-500" 
+                />
             )}
           </button>
         ))}
@@ -77,9 +81,18 @@ export default function AiAgentLayer({ video }: { video: Video }) {
             <div className="text-xs text-zinc-600 ml-2 font-sans">Preview: {tabs.find(t => t.id === activeTab)?.label}</div>
         </div>
 
-        <div className="text-zinc-300 whitespace-pre-wrap p-4 bg-zinc-950/50 border border-zinc-800/50 rounded-lg">
-          {getContent()}
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={activeTab}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2 }}
+            className="text-zinc-300 whitespace-pre-wrap p-4 bg-zinc-950/50 border border-zinc-800/50 rounded-lg"
+          >
+            {getContent()}
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Footer / Copy Action */}
